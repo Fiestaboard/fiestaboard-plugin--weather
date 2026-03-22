@@ -2,7 +2,7 @@
 
 The Weather feature displays current weather conditions with temperature, weather icons, and detailed information. It's a core feature that can be combined with other data for a complete morning briefing.
 
-![Weather Display](./weather-display.png)
+![Weather Display](./board-display.png)
 
 ## Overview
 
