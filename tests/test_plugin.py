@@ -1,5 +1,8 @@
 """Tests for the weather plugin."""
 
+import json
+from pathlib import Path
+
 import pytest
 from unittest.mock import patch, Mock, MagicMock
 
@@ -393,7 +396,12 @@ class TestWeatherPlugin:
             "description": "Weather plugin",
             "author": "Test",
             "settings_schema": {},
-            "variables": {"simple": ["temperature", "condition"]},
+            "variables": {
+                "simple": {
+                    "temperature": {"description": "Current temperature", "type": "number"},
+                    "condition": {"description": "Weather condition", "type": "string"}
+                }
+            },
             "max_lengths": {}
         }
     
@@ -461,7 +469,12 @@ class TestWeatherForecastData:
             "description": "Weather plugin",
             "author": "Test",
             "settings_schema": {},
-            "variables": {"simple": ["temperature", "condition"]},
+            "variables": {
+                "simple": {
+                    "temperature": {"description": "Current temperature", "type": "number"},
+                    "condition": {"description": "Weather condition", "type": "string"}
+                }
+            },
             "max_lengths": {}
         }
     
@@ -828,7 +841,12 @@ class TestWeatherPluginMethods:
             "description": "Weather plugin",
             "author": "Test",
             "settings_schema": {},
-            "variables": {"simple": ["temperature", "condition"]},
+            "variables": {
+                "simple": {
+                    "temperature": {"description": "Current temperature", "type": "number"},
+                    "condition": {"description": "Weather condition", "type": "string"}
+                }
+            },
             "max_lengths": {}
         }
 
@@ -1219,7 +1237,12 @@ class TestForecastDisplay:
             "description": "Weather plugin",
             "author": "Test",
             "settings_schema": {},
-            "variables": {"simple": ["temperature", "condition"]},
+            "variables": {
+                "simple": {
+                    "temperature": {"description": "Current temperature", "type": "number"},
+                    "condition": {"description": "Weather condition", "type": "string"}
+                }
+            },
             "max_lengths": {}
         }
 
@@ -1345,3 +1368,62 @@ class TestForecastDisplay:
             assert result.available is True
             assert "forecast" in result.data
             assert len(result.data["forecast"]) == 2
+
+
+class TestManifestMetadata:
+    """Tests that manifest.json has rich variable metadata."""
+
+    @pytest.fixture(autouse=True)
+    def load_manifest(self):
+        manifest_path = Path(__file__).resolve().parent.parent / "manifest.json"
+        with open(manifest_path) as f:
+            self.manifest = json.load(f)
+
+    def test_required_top_level_fields(self):
+        for field in ("id", "name", "version", "description", "variables"):
+            assert field in self.manifest, f"Missing top-level field: {field}"
+
+    def test_simple_vars_are_dicts(self):
+        simple = self.manifest["variables"]["simple"]
+        assert isinstance(simple, dict), "simple should be a dict, not a list"
+        for key, meta in simple.items():
+            assert isinstance(meta, dict), f"{key} metadata should be a dict"
+            assert "description" in meta, f"{key} missing description"
+            assert "type" in meta, f"{key} missing type"
+
+    def test_simple_var_count(self):
+        simple = self.manifest["variables"]["simple"]
+        assert len(simple) == 19, f"Expected 19 simple vars, got {len(simple)}"
+
+    def test_arrays_present(self):
+        arrays = self.manifest["variables"]["arrays"]
+        assert "locations" in arrays
+        assert "forecast" in arrays
+        for name, arr in arrays.items():
+            assert "label_field" in arr, f"{name} missing label_field"
+            assert "item_fields" in arr, f"{name} missing item_fields"
+
+    def test_groups_defined(self):
+        groups = self.manifest["variables"]["groups"]
+        assert len(groups) >= 1
+        for gid, meta in groups.items():
+            assert "label" in meta, f"Group {gid} missing label"
+
+    def test_every_simple_var_has_group(self):
+        groups = set(self.manifest["variables"]["groups"].keys())
+        for var, meta in self.manifest["variables"]["simple"].items():
+            assert "group" in meta, f"{var} missing group"
+            assert meta["group"] in groups, f"{var} references unknown group '{meta['group']}'"
+
+    def test_max_lengths_use_dotted_paths(self):
+        ml = self.manifest.get("max_lengths", {})
+        for key in ml:
+            assert "." in key, f"max_lengths key '{key}' should use dotted path (e.g. locations.*.temperature)"
+
+    def test_no_top_level_simple_max_lengths(self):
+        ml = self.manifest.get("max_lengths", {})
+        simple_keys = set(self.manifest["variables"]["simple"].keys())
+        for key in ml:
+            assert key not in simple_keys, (
+                f"max_lengths has bare key '{key}'; simple var max_length belongs in variables.simple.{key}.max_length"
+            )
