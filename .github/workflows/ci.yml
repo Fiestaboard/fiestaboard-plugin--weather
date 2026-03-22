@@ -41,4 +41,5 @@ jobs:
           [run]
           omit = fiestaboard-core/*
           RCEOF
-          pytest tests/ -v --cov=. --cov-report=term-missing --ignore=fiestaboard-core
+          pytest tests/ -v --cov=. --cov-report=term-missing --ignore=fiestaboard-core \
+            --ignore=__init__.py
