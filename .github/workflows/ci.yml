@@ -37,8 +37,7 @@ jobs:
           PYTHONPATH: "fiestaboard-core:${{ github.workspace }}:fiestaboard-core/plugins"
           BOARD_READ_WRITE_KEY: test_key
         run: |
+          PLUGIN_ID=$(python -c "import json; print(json.load(open('manifest.json'))['id'])")
           pytest tests/ -v \
-            --cov=tests \
-            --cov-report=term-missing \
-            --ignore=fiestaboard-core \
-            --ignore=__init__.py
+            --rootdir=tests \
+            --override-ini="collect_ignore_glob=['*/__init__.py']"
