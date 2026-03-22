@@ -12,66 +12,277 @@
   "settings_schema": {
     "type": "object",
     "properties": {
-      "enabled": {"type": "boolean", "title": "Enable Weather", "default": false},
-      "provider": {"type": "string", "title": "Weather Provider", "description": "Choose your weather data provider", "enum": ["weatherapi", "openweathermap"], "default": "weatherapi"},
-      "api_key": {"type": "string", "title": "API Key", "description": "Your weather provider API key", "ui:widget": "password"},
+      "enabled": {
+        "type": "boolean",
+        "title": "Enable Weather",
+        "default": false
+      },
+      "provider": {
+        "type": "string",
+        "title": "Weather Provider",
+        "description": "Choose your weather data provider",
+        "enum": [
+          "weatherapi",
+          "openweathermap"
+        ],
+        "default": "weatherapi"
+      },
+      "api_key": {
+        "type": "string",
+        "title": "API Key",
+        "description": "Your weather provider API key",
+        "ui:widget": "password"
+      },
       "locations": {
-        "type": "array", "title": "Locations", "description": "Weather locations to monitor (max 4)", "minItems": 1, "maxItems": 4,
+        "type": "array",
+        "title": "Locations",
+        "description": "Weather locations to monitor (max 4)",
+        "minItems": 1,
+        "maxItems": 4,
         "items": {
           "type": "object",
           "properties": {
-            "location": {"type": "string", "title": "Location", "description": "City name, zip code, or coordinates"},
-            "name": {"type": "string", "title": "Display Name", "description": "Short name for display (e.g., HOME, WORK)", "maxLength": 10}
+            "location": {
+              "type": "string",
+              "title": "Location",
+              "description": "City name, zip code, or coordinates"
+            },
+            "name": {
+              "type": "string",
+              "title": "Display Name",
+              "description": "Short name for display (e.g., HOME, WORK)",
+              "maxLength": 10
+            }
           },
-          "required": ["location", "name"]
+          "required": [
+            "location",
+            "name"
+          ]
         }
       },
-      "refresh_seconds": {"type": "integer", "title": "Refresh Interval (seconds)", "description": "How often to fetch new weather data", "default": 300, "minimum": 60, "maximum": 3600}
+      "refresh_seconds": {
+        "type": "integer",
+        "title": "Refresh Interval (seconds)",
+        "description": "How often to fetch new weather data",
+        "default": 300,
+        "minimum": 60,
+        "maximum": 3600
+      }
     },
-    "required": ["api_key", "locations"]
+    "required": [
+      "api_key",
+      "locations"
+    ]
   },
   "env_vars": [
-    {"name": "WEATHER_API_KEY", "required": true, "description": "API key from WeatherAPI or OpenWeatherMap"},
-    {"name": "WEATHER_PROVIDER", "required": false, "description": "Weather provider: weatherapi (default) or openweathermap", "default": "weatherapi"},
-    {"name": "WEATHER_LOCATION", "required": false, "description": "Default location (city name, zip, or coordinates)"},
-    {"name": "WEATHER_REFRESH_SECONDS", "required": false, "description": "Refresh interval in seconds", "default": "300"}
+    {
+      "name": "WEATHER_API_KEY",
+      "required": true,
+      "description": "API key from WeatherAPI or OpenWeatherMap"
+    },
+    {
+      "name": "WEATHER_PROVIDER",
+      "required": false,
+      "description": "Weather provider: weatherapi (default) or openweathermap",
+      "default": "weatherapi"
+    },
+    {
+      "name": "WEATHER_LOCATION",
+      "required": false,
+      "description": "Default location (city name, zip, or coordinates)"
+    },
+    {
+      "name": "WEATHER_REFRESH_SECONDS",
+      "required": false,
+      "description": "Refresh interval in seconds",
+      "default": "300"
+    }
   ],
   "variables": {
     "groups": {
-      "temperature": {"label": "Temperature"},
-      "conditions": {"label": "Conditions"},
-      "location_info": {"label": "Location"},
-      "display": {"label": "Display"}
+      "temperature": {
+        "label": "Temperature"
+      },
+      "conditions": {
+        "label": "Conditions"
+      },
+      "location_info": {
+        "label": "Location"
+      },
+      "display": {
+        "label": "Display"
+      }
     },
     "simple": {
-      "temperature": {"description": "Current temperature in Fahrenheit", "type": "number", "max_length": 3, "group": "temperature", "example": "72"},
-      "temperature_c": {"description": "Current temperature in Celsius", "type": "number", "max_length": 3, "group": "temperature", "example": "22"},
-      "feels_like": {"description": "Feels-like temperature in Fahrenheit", "type": "number", "max_length": 3, "group": "temperature", "example": "74"},
-      "feels_like_c": {"description": "Feels-like temperature in Celsius", "type": "number", "max_length": 3, "group": "temperature", "example": "23"},
-      "high_temp": {"description": "Daily high temperature in Fahrenheit", "type": "number", "max_length": 3, "group": "temperature", "example": "78"},
-      "high_temp_c": {"description": "Daily high temperature in Celsius", "type": "number", "max_length": 3, "group": "temperature", "example": "26"},
-      "low_temp": {"description": "Daily low temperature in Fahrenheit", "type": "number", "max_length": 3, "group": "temperature", "example": "55"},
-      "low_temp_c": {"description": "Daily low temperature in Celsius", "type": "number", "max_length": 3, "group": "temperature", "example": "13"},
-      "condition": {"description": "Weather condition text (e.g., Sunny, Cloudy, Rain)", "type": "string", "max_length": 12, "group": "conditions", "example": "Partly Cloudy"},
-      "humidity": {"description": "Humidity percentage", "type": "number", "max_length": 3, "group": "conditions", "example": "65"},
-      "wind_speed": {"description": "Wind speed in mph", "type": "number", "max_length": 3, "group": "conditions", "example": "12"},
-      "precipitation_chance": {"description": "Chance of precipitation as percentage", "type": "number", "max_length": 3, "group": "conditions", "example": "20"},
-      "uv_index": {"description": "UV index value", "type": "number", "max_length": 2, "group": "conditions", "example": "6"},
-      "sunset": {"description": "Sunset time", "type": "string", "max_length": 8, "group": "conditions", "example": "7:42 PM"},
-      "temperature_color": {"description": "Color code based on temperature", "type": "string", "max_length": 4, "group": "display", "example": "{63}"},
-      "uv_index_color": {"description": "Color code based on UV index", "type": "string", "max_length": 4, "group": "display", "example": "{65}"},
-      "location": {"description": "Full location string from provider", "type": "string", "max_length": 15, "group": "location_info", "example": "San Francisco"},
-      "location_name": {"description": "Display name for the location", "type": "string", "max_length": 10, "group": "location_info", "example": "HOME"},
-      "location_count": {"description": "Number of monitored locations", "type": "number", "max_length": 1, "group": "location_info", "example": "2"}
+      "temperature": {
+        "description": "Current temperature in Fahrenheit",
+        "type": "number",
+        "max_length": 3,
+        "group": "temperature",
+        "example": "72"
+      },
+      "temperature_c": {
+        "description": "Current temperature in Celsius",
+        "type": "number",
+        "max_length": 3,
+        "group": "temperature",
+        "example": "22"
+      },
+      "feels_like": {
+        "description": "Feels-like temperature in Fahrenheit",
+        "type": "number",
+        "max_length": 3,
+        "group": "temperature",
+        "example": "74"
+      },
+      "feels_like_c": {
+        "description": "Feels-like temperature in Celsius",
+        "type": "number",
+        "max_length": 3,
+        "group": "temperature",
+        "example": "23"
+      },
+      "high_temp": {
+        "description": "Daily high temperature in Fahrenheit",
+        "type": "number",
+        "max_length": 3,
+        "group": "temperature",
+        "example": "78"
+      },
+      "high_temp_c": {
+        "description": "Daily high temperature in Celsius",
+        "type": "number",
+        "max_length": 3,
+        "group": "temperature",
+        "example": "26"
+      },
+      "low_temp": {
+        "description": "Daily low temperature in Fahrenheit",
+        "type": "number",
+        "max_length": 3,
+        "group": "temperature",
+        "example": "55"
+      },
+      "low_temp_c": {
+        "description": "Daily low temperature in Celsius",
+        "type": "number",
+        "max_length": 3,
+        "group": "temperature",
+        "example": "13"
+      },
+      "condition": {
+        "description": "Weather condition text (e.g., Sunny, Cloudy, Rain)",
+        "type": "string",
+        "max_length": 12,
+        "group": "conditions",
+        "example": "Partly Cloudy"
+      },
+      "humidity": {
+        "description": "Humidity percentage",
+        "type": "number",
+        "max_length": 3,
+        "group": "conditions",
+        "example": "65"
+      },
+      "wind_speed": {
+        "description": "Wind speed in mph",
+        "type": "number",
+        "max_length": 3,
+        "group": "conditions",
+        "example": "12"
+      },
+      "precipitation_chance": {
+        "description": "Chance of precipitation as percentage",
+        "type": "number",
+        "max_length": 3,
+        "group": "conditions",
+        "example": "20"
+      },
+      "uv_index": {
+        "description": "UV index value",
+        "type": "number",
+        "max_length": 2,
+        "group": "conditions",
+        "example": "6"
+      },
+      "sunset": {
+        "description": "Sunset time",
+        "type": "string",
+        "max_length": 8,
+        "group": "conditions",
+        "example": "7:42 PM"
+      },
+      "temperature_color": {
+        "description": "Color code based on temperature",
+        "type": "string",
+        "max_length": 4,
+        "group": "display",
+        "example": "{63}"
+      },
+      "uv_index_color": {
+        "description": "Color code based on UV index",
+        "type": "string",
+        "max_length": 4,
+        "group": "display",
+        "example": "{65}"
+      },
+      "location": {
+        "description": "Full location string from provider",
+        "type": "string",
+        "max_length": 15,
+        "group": "location_info",
+        "example": "San Francisco"
+      },
+      "location_name": {
+        "description": "Display name for the location",
+        "type": "string",
+        "max_length": 10,
+        "group": "location_info",
+        "example": "HOME"
+      },
+      "location_count": {
+        "description": "Number of monitored locations",
+        "type": "number",
+        "max_length": 1,
+        "group": "location_info",
+        "example": "2"
+      }
     },
     "arrays": {
       "locations": {
         "label_field": "location_name",
-        "item_fields": ["temperature", "temperature_c", "feels_like", "feels_like_c", "condition", "humidity", "wind_speed", "location", "location_name", "precipitation_chance", "high_temp", "high_temp_c", "low_temp", "low_temp_c", "uv_index", "sunset"]
+        "item_fields": [
+          "temperature",
+          "temperature_c",
+          "feels_like",
+          "feels_like_c",
+          "condition",
+          "humidity",
+          "wind_speed",
+          "location",
+          "location_name",
+          "precipitation_chance",
+          "high_temp",
+          "high_temp_c",
+          "low_temp",
+          "low_temp_c",
+          "uv_index",
+          "sunset"
+        ]
       },
       "forecast": {
         "label_field": "day_name",
-        "item_fields": ["date", "day_name", "high_temp", "high_temp_c", "low_temp", "low_temp_c", "condition", "precipitation_chance", "temperature_color"]
+        "item_fields": [
+          "date",
+          "day_name",
+          "high_temp",
+          "high_temp_c",
+          "low_temp",
+          "low_temp_c",
+          "condition",
+          "precipitation_chance",
+          "temperature_color"
+        ]
       }
     }
   },
@@ -107,24 +318,72 @@
       "type": "threshold",
       "description": "Color based on temperature value",
       "default_rules": [
-        {"condition": ">=", "value": 90, "color": "red"},
-        {"condition": ">=", "value": 75, "color": "orange"},
-        {"condition": ">=", "value": 60, "color": "green"},
-        {"condition": ">=", "value": 45, "color": "blue"},
-        {"condition": "<", "value": 45, "color": "violet"}
+        {
+          "condition": ">=",
+          "value": 90,
+          "color": "red"
+        },
+        {
+          "condition": ">=",
+          "value": 75,
+          "color": "orange"
+        },
+        {
+          "condition": ">=",
+          "value": 60,
+          "color": "green"
+        },
+        {
+          "condition": ">=",
+          "value": 45,
+          "color": "blue"
+        },
+        {
+          "condition": "<",
+          "value": 45,
+          "color": "violet"
+        }
       ]
     },
     "uv_index": {
       "type": "threshold",
       "description": "Color based on UV index value (standard UV index color scheme)",
       "default_rules": [
-        {"condition": ">=", "value": 11, "color": "violet"},
-        {"condition": ">=", "value": 8, "color": "red"},
-        {"condition": ">=", "value": 6, "color": "orange"},
-        {"condition": ">=", "value": 3, "color": "yellow"},
-        {"condition": "<", "value": 3, "color": "green"}
+        {
+          "condition": ">=",
+          "value": 11,
+          "color": "violet"
+        },
+        {
+          "condition": ">=",
+          "value": 8,
+          "color": "red"
+        },
+        {
+          "condition": ">=",
+          "value": 6,
+          "color": "orange"
+        },
+        {
+          "condition": ">=",
+          "value": 3,
+          "color": "yellow"
+        },
+        {
+          "condition": "<",
+          "value": 3,
+          "color": "green"
+        }
       ]
     }
   },
-  "fiestaboard_version": ">=2.10.0"
+  "fiestaboard_version": ">=2.10.0",
+  "screenshots": [
+    {
+      "src": "docs/board-display.png",
+      "alt": "Weather displayed on a Vestaboard",
+      "caption": "Display current weather conditions with temperature, humidity, and wind speed",
+      "primary": true
+    }
+  ]
 }
