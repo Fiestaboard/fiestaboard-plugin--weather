@@ -1,7 +1,7 @@
 {
   "id": "weather",
   "name": "Weather",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Display current weather conditions with temperature, humidity, and wind speed",
   "author": "FiestaBoard Team",
   "repository": "https://github.com/Fiestaboard/fiestaboard-plugin--weather",
@@ -385,5 +385,43 @@
       "caption": "Display current weather conditions with temperature, humidity, and wind speed",
       "primary": true
     }
-  ]
+  ],
+  "demo": {
+    "name": "Weather Demo",
+    "device_type": "flagship",
+    "template": [
+      "{{weather.location_name}} Weather",
+      "{{weather.temperature}}F {{weather.condition}}",
+      "Hi {{weather.high_temp}} Lo {{weather.low_temp}}",
+      "Humidity {{weather.humidity}}%",
+      "Wind {{weather.wind_speed}} mph",
+      "Sunset {{weather.sunset}}"
+    ],
+    "line_metadata": [
+      {
+        "alignment": "center",
+        "wrap": false
+      },
+      {
+        "alignment": "center",
+        "wrap": false
+      },
+      {
+        "alignment": "center",
+        "wrap": false
+      },
+      {
+        "alignment": "center",
+        "wrap": false
+      },
+      {
+        "alignment": "center",
+        "wrap": false
+      },
+      {
+        "alignment": "center",
+        "wrap": false
+      }
+    ]
+  }
 }
