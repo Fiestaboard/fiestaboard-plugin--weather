@@ -8,6 +8,8 @@ Display current weather conditions with temperature, humidity, and wind speed.
 
 The Weather plugin fetches real-time weather data from WeatherAPI.com or OpenWeatherMap and makes it available as template variables for your board.
 
+![Weather Display](./docs/board-display.png)
+
 ## Features
 
 - Current temperature and "feels like" temperature
