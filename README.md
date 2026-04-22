@@ -46,7 +46,7 @@ For detailed setup instructions, see the **[Setup Guide](./docs/SETUP.md)**.
 {{weather.high_temp_c}}         # Daily high temperature in Celsius
 {{weather.low_temp}}             # Daily low temperature in Fahrenheit
 {{weather.low_temp_c}}           # Daily low temperature in Celsius
-{{weather.uv_index}}            # UV index (0-11+, rounded to integer)
+{{weather.uv_index}}            # UV index (as returned by weather provider)
 {{weather.uv_index_color}}      # UV index color tile
 {{weather.temperature_color}}    # Temperature color tile
 {{weather.sunset}}               # Sunset time (e.g., "8:36 PM")
@@ -63,7 +63,7 @@ For detailed setup instructions, see the **[Setup Guide](./docs/SETUP.md)**.
 {{weather.locations.0.high_temp_c}}        # First location high temp in Celsius
 {{weather.locations.0.low_temp}}           # First location low temp in Fahrenheit
 {{weather.locations.0.low_temp_c}}         # First location low temp in Celsius
-{{weather.locations.0.uv_index}}           # First location UV index (rounded to integer)
+{{weather.locations.0.uv_index}}           # First location UV index (as returned by weather provider)
 {{weather.locations.0.precipitation_chance}} # First location rain chance (0-100)
 {{weather.locations.0.sunset}}              # First location sunset time
 {{weather.locations.1.temperature}}       # Second location temp in Fahrenheit
@@ -137,8 +137,6 @@ Color thresholds (standard UV index scale):
 - Orange: UV 6-7 (High)
 - Red: UV 8-10 (Very High)
 - Violet: UV 11+ (Extreme)
-
-**Note:** The UV index is rounded to the nearest integer (e.g., 2.1 → 2, 5.9 → 6).
 
 ## Configuration Options
 
