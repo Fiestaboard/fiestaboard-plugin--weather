@@ -42,7 +42,7 @@ jobs:
 
       - name: Run tests
         env:
-          PYTHONPATH: "${{ github.workspace }}:fiestaboard-core:fiestaboard-core/plugins"
+          PYTHONPATH: "${{ github.workspace }}:fiestaboard-core"
           BOARD_READ_WRITE_KEY: test_key
         run: |
           PLUGIN_ID=$(python -c "import json; print(json.load(open('manifest.json'))['id'])")
