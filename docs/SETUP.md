@@ -125,25 +125,48 @@ Wind: {weather.wind_speed}mph
 ### Single Location
 
 ```
-{weather.temperature}        # Current temperature (e.g., "68")
-{weather.feels_like}         # Feels like temperature (e.g., "65")
+{weather.temperature}        # Current temperature in Fahrenheit (e.g., "68")
+{weather.temperature_c}      # Current temperature in Celsius (e.g., "20")
+{weather.feels_like}         # Feels like temperature in Fahrenheit (e.g., "65")
+{weather.feels_like_c}       # Feels like temperature in Celsius (e.g., "18")
 {weather.condition}          # Weather condition (e.g., "Partly Cloudy")
 {weather.humidity}           # Humidity percentage (e.g., "75")
 {weather.wind_speed}         # Wind speed in mph (e.g., "12")
-{weather.location}           # Location name (e.g., "San Francisco")
+{weather.high_temp}          # Daily high temperature in Fahrenheit
+{weather.high_temp_c}        # Daily high temperature in Celsius
+{weather.low_temp}           # Daily low temperature in Fahrenheit
+{weather.low_temp_c}         # Daily low temperature in Celsius
+{weather.precipitation_chance} # Chance of rain as percentage (0-100)
+{weather.uv_index}           # UV index value
+{weather.uv_index_color}     # Color tile based on UV index
+{weather.temperature_color}  # Color tile based on temperature
+{weather.sunset}             # Sunset time (e.g., "7:42 PM")
+{weather.location}           # Location name from API (e.g., "San Francisco")
+{weather.location_name}      # Your custom display name (e.g., "HOME")
+{weather.location_count}     # Number of configured locations
 ```
 
 ### Multiple Locations
 
 Access by index (0-based):
 ```
-{weather.locations.0.temperature}
-{weather.locations.0.condition}
-{weather.locations.0.name}   # Custom location name (e.g., "HOME")
+{weather.locations.0.temperature}           # Temperature in Fahrenheit
+{weather.locations.0.temperature_c}         # Temperature in Celsius
+{weather.locations.0.feels_like}            # Feels-like temp in Fahrenheit
+{weather.locations.0.condition}             # Weather condition
+{weather.locations.0.humidity}              # Humidity percentage
+{weather.locations.0.wind_speed}            # Wind speed in mph
+{weather.locations.0.high_temp}             # Daily high in Fahrenheit
+{weather.locations.0.low_temp}              # Daily low in Fahrenheit
+{weather.locations.0.precipitation_chance}  # Rain chance (0-100)
+{weather.locations.0.uv_index}              # UV index
+{weather.locations.0.sunset}                # Sunset time
+{weather.locations.0.location}              # Location name from API
+{weather.locations.0.location_name}         # Custom display name (e.g., "HOME")
 
 {weather.locations.1.temperature}
 {weather.locations.1.condition}
-{weather.locations.1.name}   # e.g., "WORK"
+{weather.locations.1.location_name}         # e.g., "WORK"
 ```
 
 ### Weather Icons
@@ -208,9 +231,9 @@ GYM:  {weather.locations.2.temperature}° {weather.locations.2.condition}
 
 ```
 {center}TEMPS
-{weather.locations.0.name}: {weather.locations.0.temperature}°
-{weather.locations.1.name}: {weather.locations.1.temperature}°
-{weather.locations.2.name}: {weather.locations.2.temperature}°
+{weather.locations.0.location_name}: {weather.locations.0.temperature}°
+{weather.locations.1.location_name}: {weather.locations.1.temperature}°
+{weather.locations.2.location_name}: {weather.locations.2.temperature}°
 ```
 
 ### Weather + DateTime (Classic)
