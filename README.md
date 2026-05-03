@@ -55,24 +55,39 @@ For detailed setup instructions, see the **[Setup Guide](./docs/SETUP.md)**.
 ### Multiple Locations
 
 ```
-{{weather.location_count}}                  # Number of locations
-{{weather.locations.0.temperature}}       # First location temp in Fahrenheit
-{{weather.locations.0.temperature_c}}      # First location temp in Celsius
-{{weather.locations.0.location_name}}     # First location name
-{{weather.locations.0.high_temp}}          # First location high temp in Fahrenheit
-{{weather.locations.0.high_temp_c}}        # First location high temp in Celsius
-{{weather.locations.0.low_temp}}           # First location low temp in Fahrenheit
-{{weather.locations.0.low_temp_c}}         # First location low temp in Celsius
-{{weather.locations.0.uv_index}}           # First location UV index (as returned by weather provider)
-{{weather.locations.0.precipitation_chance}} # First location rain chance (0-100)
-{{weather.locations.0.sunset}}              # First location sunset time
-{{weather.locations.1.temperature}}       # Second location temp in Fahrenheit
-{{weather.locations.1.temperature_c}}      # Second location temp in Celsius
-{{weather.locations.1.location_name}}      # Second location name
-{{weather.locations.1.high_temp}}          # Second location high temp in Fahrenheit
-{{weather.locations.1.high_temp_c}}        # Second location high temp in Celsius
-{{weather.locations.1.low_temp}}           # Second location low temp in Fahrenheit
-{{weather.locations.1.low_temp_c}}         # Second location low temp in Celsius
+{{weather.location_count}}                    # Number of locations
+{{weather.locations.0.temperature}}           # First location temp in Fahrenheit
+{{weather.locations.0.temperature_c}}         # First location temp in Celsius
+{{weather.locations.0.feels_like}}            # First location feels-like temp in Fahrenheit
+{{weather.locations.0.feels_like_c}}          # First location feels-like temp in Celsius
+{{weather.locations.0.condition}}             # First location weather condition
+{{weather.locations.0.humidity}}              # First location humidity percentage
+{{weather.locations.0.wind_speed}}            # First location wind speed in mph
+{{weather.locations.0.location}}              # First location name from API
+{{weather.locations.0.location_name}}         # First location display name
+{{weather.locations.0.high_temp}}             # First location high temp in Fahrenheit
+{{weather.locations.0.high_temp_c}}           # First location high temp in Celsius
+{{weather.locations.0.low_temp}}              # First location low temp in Fahrenheit
+{{weather.locations.0.low_temp_c}}            # First location low temp in Celsius
+{{weather.locations.0.uv_index}}              # First location UV index
+{{weather.locations.0.precipitation_chance}}  # First location rain chance (0-100)
+{{weather.locations.0.sunset}}                # First location sunset time
+{{weather.locations.1.temperature}}           # Second location temp in Fahrenheit
+{{weather.locations.1.temperature_c}}         # Second location temp in Celsius
+{{weather.locations.1.feels_like}}            # Second location feels-like temp in Fahrenheit
+{{weather.locations.1.feels_like_c}}          # Second location feels-like temp in Celsius
+{{weather.locations.1.condition}}             # Second location weather condition
+{{weather.locations.1.humidity}}              # Second location humidity percentage
+{{weather.locations.1.wind_speed}}            # Second location wind speed in mph
+{{weather.locations.1.location}}              # Second location name from API
+{{weather.locations.1.location_name}}         # Second location display name
+{{weather.locations.1.high_temp}}             # Second location high temp in Fahrenheit
+{{weather.locations.1.high_temp_c}}           # Second location high temp in Celsius
+{{weather.locations.1.low_temp}}              # Second location low temp in Fahrenheit
+{{weather.locations.1.low_temp_c}}            # Second location low temp in Celsius
+{{weather.locations.1.uv_index}}              # Second location UV index
+{{weather.locations.1.precipitation_chance}}  # Second location rain chance (0-100)
+{{weather.locations.1.sunset}}                # Second location sunset time
 ```
 
 ## Example Templates
@@ -106,8 +121,8 @@ WORK: {{weather.locations.1.temperature}}°
 ### Weather + Time
 
 ```
-{center}{{datetime.date}}
-{{datetime.time}}
+{center}{{date_time.date}}
+{{date_time.time}}
 
 {{weather.temperature}}° {{weather.condition}}
 ```

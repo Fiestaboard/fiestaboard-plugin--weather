@@ -391,7 +391,7 @@
     "device_type": "flagship",
     "template": [
       "{white}{white}   {{weather.location}}  {white}{white}",
-      "{white}  {{datetime.date}}  {{datetime.time}} {white}",
+      "{white}  {{date_time.date}}  {{date_time.time}} {white}",
       "NOW  {{weather.temperature}}F   {{weather.condition}}    {{weather.humidity}}%",
       "LIKE {{weather.feels_like}}F WIND {{weather.wind_speed}}  MPH",
       "HIGH {{weather.high_temp}}F  UV {{weather.uv_index}}{{weather.uv_index_color}}",
