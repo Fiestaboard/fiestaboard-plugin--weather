@@ -45,7 +45,7 @@
             "location": {
               "type": "string",
               "title": "Location",
-              "description": "City name, zip code, or coordinates"
+              "description": "City name (e.g. London), US zip code (e.g. 94105), or coordinates as lat,lon (e.g. 37.77,-122.41). Coordinates only supported with WeatherAPI."
             },
             "name": {
               "type": "string",
@@ -390,12 +390,12 @@
     "name": "Weather Demo",
     "device_type": "flagship",
     "template": [
-      "{white}{white}   {{weather.location}}  {white}{white}",
+      "{white}{white}   {{weather.locations.0.location_name}}  {white}{white}",
       "{white}  {{date_time.date}}  {{date_time.time}} {white}",
-      "NOW  {{weather.temperature}}F   {{weather.condition}}    {{weather.humidity}}%",
-      "LIKE {{weather.feels_like}}F WIND {{weather.wind_speed}}  MPH",
-      "HIGH {{weather.high_temp}}F  UV {{weather.uv_index}}{{weather.uv_index_color}}",
-      "LOW {{weather.low_temp}}F  SET {{weather.sunset}}"
+      "NOW  {{weather.locations.0.temperature}}F   {{weather.locations.0.condition}}    {{weather.locations.0.humidity}}%",
+      "LIKE {{weather.locations.0.feels_like}}F WIND {{weather.locations.0.wind_speed}}  MPH",
+      "HIGH {{weather.locations.0.high_temp}}F  UV {{weather.locations.0.uv_index}}{{weather.uv_index_color}}",
+      "LOW {{weather.locations.0.low_temp}}F  SET {{weather.locations.0.sunset}}"
     ],
     "line_metadata": [
       {
