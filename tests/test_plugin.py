@@ -523,31 +523,81 @@ class TestWeatherForecastData:
         # Mock forecast response
         forecast_response = Mock()
         forecast_response.status_code = 200
+        today_str = datetime.now().strftime("%Y-%m-%d")
         forecast_response.json.return_value = {
             "list": [
-                {"main": {"temp": 65, "temp_max": 65, "temp_min": 52}, "pop": 0.0},
-                {"main": {"temp": 52, "temp_max": 65, "temp_min": 50}, "pop": 0.1},
+                {"dt_txt": f"{today_str} 12:00:00", "main": {"temp": 65, "temp_max": 65, "temp_min": 52}, "weather": [{"main": "Rain"}], "pop": 0.0},
+                {"dt_txt": f"{today_str} 15:00:00", "main": {"temp": 52, "temp_max": 65, "temp_min": 50}, "weather": [{"main": "Rain"}], "pop": 0.1},
             ]
         }
         forecast_response.raise_for_status = Mock()
-        
+
         mock_get.side_effect = [current_response, forecast_response]
-        
+
         source = WeatherSource(
             provider="openweathermap",
             api_key="test_key",
             locations=[{"location": "San Francisco, CA", "name": "SF"}]
         )
         result = source.fetch_current_weather()
-        
+
         assert result is not None
         assert result["temperature"] == 63
         assert result["high_temp"] == 65
         assert result["low_temp"] == 52
-        assert result["precipitation_chance"] == 0  # Converted from 0.0
+        assert result["precipitation_chance"] == 10  # max(0.0, 0.1) * 100
         assert "sunset" in result
         assert result["sunset"].endswith("PM") or result["sunset"].endswith("AM")
-    
+
+    @patch('requests.get')
+    def test_openweathermap_precipitation_uses_today_not_first_period(self, mock_get):
+        """Today's precipitation_chance must use today's periods, not list[0].
+
+        When fetching late in the day the first period in OWM's list may already
+        be tomorrow. Using list[0].pop would show tomorrow's rain chance as today's.
+        """
+        from datetime import datetime, timedelta
+
+        today_str = datetime.now().strftime("%Y-%m-%d")
+        tomorrow_str = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")
+
+        current_response = Mock()
+        current_response.status_code = 200
+        current_response.json.return_value = {
+            "main": {"temp": 70, "feels_like": 68, "humidity": 50},
+            "weather": [{"main": "Clear", "description": "clear sky"}],
+            "wind": {"speed": 5},
+            "name": "Testville",
+        }
+        current_response.raise_for_status = Mock()
+
+        forecast_response = Mock()
+        forecast_response.status_code = 200
+        forecast_response.json.return_value = {
+            "list": [
+                # Today has 0% chance — clear day
+                {"dt_txt": f"{today_str} 21:00:00", "main": {"temp": 70}, "weather": [{"main": "Clear"}], "pop": 0.0},
+                # Tomorrow has 80% chance — rainy tomorrow
+                {"dt_txt": f"{tomorrow_str} 00:00:00", "main": {"temp": 65}, "weather": [{"main": "Rain"}], "pop": 0.8},
+                {"dt_txt": f"{tomorrow_str} 03:00:00", "main": {"temp": 60}, "weather": [{"main": "Rain"}], "pop": 0.9},
+            ]
+        }
+        forecast_response.raise_for_status = Mock()
+
+        mock_get.side_effect = [current_response, forecast_response]
+
+        from plugins.weather.source import WeatherSource
+        source = WeatherSource(
+            provider="openweathermap",
+            api_key="test_key",
+            locations=[{"location": "Testville", "name": "TEST"}]
+        )
+        result = source.fetch_current_weather()
+
+        assert result is not None
+        # Must show today's 0%, not tomorrow's 80%
+        assert result["precipitation_chance"] == 0
+
     def test_sunset_time_formatting(self):
         """Test sunset time formatting."""
         from plugins.weather.source import WeatherSource

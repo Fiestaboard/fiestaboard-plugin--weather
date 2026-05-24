@@ -366,10 +366,13 @@ class WeatherSource:
                     if low_temp is not None:
                         result["low_temp_c"] = round((low_temp - 32) * 5 / 9)
                     
-                    # Get precipitation probability from first forecast period
-                    # OpenWeatherMap uses 0-1 range, convert to 0-100
-                    pop = forecast_data["list"][0].get("pop", 0)
-                    result["precipitation_chance"] = int(pop * 100) if pop is not None else 0
+                    # Get precipitation probability for today from aggregated daily data.
+                    # Using list[0] is wrong when the first period is already tomorrow (late-day fetches).
+                    today_pops = daily_data.get(today_str, {}).get("pops", [])
+                    if not today_pops:
+                        today_pops = [item.get("pop", 0) for item in forecast_data["list"][:8]]
+                    max_pop = max(today_pops) if today_pops else 0
+                    result["precipitation_chance"] = int(max_pop * 100)
                     
                     # Calculate sunset time from sys data
                     if "sys" in current_data and "sunset" in current_data["sys"]:
