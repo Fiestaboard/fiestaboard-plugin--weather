@@ -1503,7 +1503,7 @@ class TestManifestMetadata:
 
     def test_simple_var_count(self):
         simple = self.manifest["variables"]["simple"]
-        assert len(simple) == 19, f"Expected 19 simple vars, got {len(simple)}"
+        assert len(simple) == 20, f"Expected 20 simple vars, got {len(simple)}"
 
     def test_arrays_present(self):
         arrays = self.manifest["variables"]["arrays"]
