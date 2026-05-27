@@ -443,6 +443,7 @@ class TestWeatherForecastData:
         assert result["low_temp"] == 52
         assert result["uv_index"] == 5  # Passthrough of current.uv
         assert result["precipitation_chance"] == 0
+        assert result["precipitation_chance_today"] == 0
         assert result["sunset"] == "5:36 PM"
         # Check Celsius conversions
         assert "temperature_c" in result
@@ -546,6 +547,7 @@ class TestWeatherForecastData:
         assert result["high_temp"] == 65
         assert result["low_temp"] == 52
         assert result["precipitation_chance"] == 10  # max(0.0, 0.1) * 100
+        assert result["precipitation_chance_today"] == 10
         assert "sunset" in result
         assert result["sunset"].endswith("PM") or result["sunset"].endswith("AM")
 
@@ -597,6 +599,155 @@ class TestWeatherForecastData:
         assert result is not None
         # Must show today's 0%, not tomorrow's 80%
         assert result["precipitation_chance"] == 0
+        assert result["precipitation_chance_today"] == 0
+
+    @patch('requests.get')
+    def test_weatherapi_precipitation_chance_next_uses_upcoming_hour(self, mock_get):
+        """precipitation_chance_next reads the next hourly bucket, not the daily peak."""
+        from datetime import datetime, timezone, timedelta
+
+        current_response = Mock()
+        current_response.status_code = 200
+        current_response.json.return_value = {
+            "current": {
+                "temp_f": 70, "feelslike_f": 68,
+                "condition": {"text": "Cloudy"},
+                "humidity": 70, "wind_mph": 10, "uv": 4,
+            },
+            "location": {"name": "Testville"},
+        }
+        current_response.raise_for_status = Mock()
+
+        now = datetime.now(timezone.utc)
+        past_epoch = int((now - timedelta(hours=2)).timestamp())
+        next_epoch = int((now + timedelta(minutes=30)).timestamp())
+        later_epoch = int((now + timedelta(hours=2)).timestamp())
+
+        forecast_response = Mock()
+        forecast_response.status_code = 200
+        forecast_response.json.return_value = {
+            "forecast": {
+                "forecastday": [{
+                    "day": {
+                        "maxtemp_f": 75, "mintemp_f": 60,
+                        "daily_chance_of_rain": 90,
+                    },
+                    "astro": {"sunset": "07:42 PM"},
+                    "hour": [
+                        {"time_epoch": past_epoch, "chance_of_rain": 90, "chance_of_snow": 0},
+                        {"time_epoch": next_epoch, "chance_of_rain": 10, "chance_of_snow": 0},
+                        {"time_epoch": later_epoch, "chance_of_rain": 50, "chance_of_snow": 0},
+                    ],
+                }]
+            }
+        }
+        forecast_response.raise_for_status = Mock()
+
+        mock_get.side_effect = [current_response, forecast_response]
+
+        source = WeatherSource(
+            provider="weatherapi", api_key="test_key",
+            locations=[{"location": "Testville", "name": "T"}],
+        )
+        result = source.fetch_current_weather()
+
+        assert result is not None
+        assert result["precipitation_chance"] == 90
+        assert result["precipitation_chance_next"] == 10
+
+    @patch('requests.get')
+    def test_weatherapi_precipitation_chance_next_uses_max_rain_or_snow(self, mock_get):
+        """precipitation_chance_next combines rain and snow chances (max)."""
+        from datetime import datetime, timezone, timedelta
+
+        current_response = Mock()
+        current_response.status_code = 200
+        current_response.json.return_value = {
+            "current": {
+                "temp_f": 30, "feelslike_f": 25,
+                "condition": {"text": "Snow"},
+                "humidity": 80, "wind_mph": 5, "uv": 1,
+            },
+            "location": {"name": "Snowville"},
+        }
+        current_response.raise_for_status = Mock()
+
+        now = datetime.now(timezone.utc)
+        next_epoch = int((now + timedelta(minutes=30)).timestamp())
+
+        forecast_response = Mock()
+        forecast_response.status_code = 200
+        forecast_response.json.return_value = {
+            "forecast": {
+                "forecastday": [{
+                    "day": {"maxtemp_f": 32, "mintemp_f": 20, "daily_chance_of_rain": 5},
+                    "astro": {"sunset": "05:00 PM"},
+                    "hour": [
+                        {"time_epoch": next_epoch, "chance_of_rain": 5, "chance_of_snow": 70},
+                    ],
+                }]
+            }
+        }
+        forecast_response.raise_for_status = Mock()
+
+        mock_get.side_effect = [current_response, forecast_response]
+
+        source = WeatherSource(
+            provider="weatherapi", api_key="test_key",
+            locations=[{"location": "Snowville", "name": "S"}],
+        )
+        result = source.fetch_current_weather()
+
+        assert result is not None
+        assert result["precipitation_chance_next"] == 70
+
+    @patch('requests.get')
+    def test_openweathermap_precipitation_chance_next_uses_next_bucket(self, mock_get):
+        """precipitation_chance_next reads the next 3-hour bucket, not today's peak."""
+        from datetime import datetime, timezone, timedelta
+
+        now = datetime.now(timezone.utc)
+        today_str = now.strftime("%Y-%m-%d")
+
+        current_response = Mock()
+        current_response.status_code = 200
+        current_response.json.return_value = {
+            "main": {"temp": 70, "feels_like": 68, "humidity": 50},
+            "weather": [{"main": "Clear", "description": "clear sky"}],
+            "wind": {"speed": 5},
+            "name": "Testville",
+        }
+        current_response.raise_for_status = Mock()
+
+        past_dt = int((now - timedelta(hours=2)).timestamp())
+        next_dt = int((now + timedelta(hours=1)).timestamp())
+        later_dt = int((now + timedelta(hours=4)).timestamp())
+
+        forecast_response = Mock()
+        forecast_response.status_code = 200
+        forecast_response.json.return_value = {
+            "list": [
+                {"dt": past_dt, "dt_txt": f"{today_str} 00:00:00",
+                 "main": {"temp": 60}, "weather": [{"main": "Rain"}], "pop": 0.9},
+                {"dt": next_dt, "dt_txt": f"{today_str} 12:00:00",
+                 "main": {"temp": 70}, "weather": [{"main": "Clear"}], "pop": 0.2},
+                {"dt": later_dt, "dt_txt": f"{today_str} 15:00:00",
+                 "main": {"temp": 65}, "weather": [{"main": "Rain"}], "pop": 0.8},
+            ]
+        }
+        forecast_response.raise_for_status = Mock()
+
+        mock_get.side_effect = [current_response, forecast_response]
+
+        source = WeatherSource(
+            provider="openweathermap", api_key="test_key",
+            locations=[{"location": "Testville", "name": "T"}],
+        )
+        result = source.fetch_current_weather()
+
+        assert result is not None
+        assert result["precipitation_chance"] == 90
+        assert result["precipitation_chance_next"] == 20
 
     def test_sunset_time_formatting(self):
         """Test sunset time formatting."""
@@ -1352,7 +1503,7 @@ class TestManifestMetadata:
 
     def test_simple_var_count(self):
         simple = self.manifest["variables"]["simple"]
-        assert len(simple) == 19, f"Expected 19 simple vars, got {len(simple)}"
+        assert len(simple) == 20, f"Expected 20 simple vars, got {len(simple)}"
 
     def test_arrays_present(self):
         arrays = self.manifest["variables"]["arrays"]

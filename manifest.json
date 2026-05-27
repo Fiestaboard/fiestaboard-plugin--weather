@@ -1,7 +1,7 @@
 {
   "id": "weather",
   "name": "Weather",
-  "version": "1.1.4",
+  "version": "1.2.0",
   "description": "Display current weather conditions with temperature, humidity, and wind speed",
   "author": "FiestaBoard Team",
   "repository": "https://github.com/Fiestaboard/fiestaboard-plugin--weather",
@@ -191,12 +191,19 @@
         "group": "conditions",
         "example": "12"
       },
-      "precipitation_chance": {
-        "description": "Chance of precipitation as percentage",
+      "precipitation_chance_today": {
+        "description": "Chance of precipitation as percentage for today (peak across the day)",
         "type": "number",
         "max_length": 3,
         "group": "conditions",
         "example": "20"
+      },
+      "precipitation_chance_next": {
+        "description": "Chance of precipitation as percentage for the upcoming hour (WeatherAPI) or next 3-hour window (OpenWeatherMap free tier)",
+        "type": "number",
+        "max_length": 3,
+        "group": "conditions",
+        "example": "10"
       },
       "uv_index": {
         "description": "UV index value",
@@ -262,6 +269,8 @@
           "location",
           "location_name",
           "precipitation_chance",
+          "precipitation_chance_today",
+          "precipitation_chance_next",
           "high_temp",
           "high_temp_c",
           "low_temp",
@@ -297,6 +306,8 @@
     "locations.*.location": 15,
     "locations.*.location_name": 10,
     "locations.*.precipitation_chance": 3,
+    "locations.*.precipitation_chance_today": 3,
+    "locations.*.precipitation_chance_next": 3,
     "locations.*.high_temp": 3,
     "locations.*.high_temp_c": 3,
     "locations.*.low_temp": 3,

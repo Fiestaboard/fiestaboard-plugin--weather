@@ -186,9 +186,21 @@ class WeatherSource:
                         if isinstance(low_temp, (int, float)):
                             result["low_temp_c"] = round((low_temp - 32) * 5 / 9)
                         
-                        # Precipitation chance
-                        result["precipitation_chance"] = day_data.get("daily_chance_of_rain", 0)
-                        
+                        # precipitation_chance_today: today's peak (canonical name).
+                        # precipitation_chance: deprecated alias — still emitted so existing
+                        # templates keep rendering, but omitted from manifest variables.simple
+                        # so it is hidden from the variable picker.
+                        today_pop = day_data.get("daily_chance_of_rain", 0)
+                        result["precipitation_chance_today"] = today_pop
+                        result["precipitation_chance"] = today_pop
+
+                        # Near-term precipitation chance — next upcoming hourly bucket
+                        # (~1h resolution). Walks today's hours then tomorrow's so it stays
+                        # correct late in the day.
+                        result["precipitation_chance_next"] = self._weatherapi_next_hour_pop(
+                            forecast_data["forecast"]["forecastday"]
+                        )
+
                         # Sunset time
                         sunset_str = astro_data.get("sunset", "")
                         if sunset_str:
@@ -233,6 +245,25 @@ class WeatherSource:
             logger.error(f"Unexpected response format from WeatherAPI for {location_name}: {e}")
             return None
     
+    def _weatherapi_next_hour_pop(self, forecastdays: List[Dict[str, Any]]) -> int:
+        """Return chance of precipitation (0-100) for the next hourly bucket.
+
+        Picks the first hour entry across forecastdays whose time_epoch is at or
+        after now. Takes max(chance_of_rain, chance_of_snow) since "precipitation"
+        covers both. Returns 0 if no future bucket is found.
+        """
+        now_epoch = datetime.now(timezone.utc).timestamp()
+        for fday in forecastdays:
+            for hour_entry in fday.get("hour", []):
+                if hour_entry.get("time_epoch", 0) >= now_epoch:
+                    try:
+                        rain = int(hour_entry.get("chance_of_rain", 0) or 0)
+                        snow = int(hour_entry.get("chance_of_snow", 0) or 0)
+                    except (TypeError, ValueError):
+                        return 0
+                    return max(rain, snow)
+        return 0
+
     def _format_sunset_time(self, sunset_str: str) -> str:
         """Format sunset time from API format to '8:36 PM' format.
         
@@ -371,9 +402,26 @@ class WeatherSource:
                     today_pops = daily_data.get(today_str, {}).get("pops", [])
                     if not today_pops:
                         today_pops = [item.get("pop", 0) for item in forecast_data["list"][:8]]
+                    # precipitation_chance_today: today's peak (canonical name).
+                    # precipitation_chance: deprecated alias — still emitted so existing
+                    # templates keep rendering, but omitted from manifest variables.simple
+                    # so it is hidden from the variable picker.
                     max_pop = max(today_pops) if today_pops else 0
-                    result["precipitation_chance"] = int(max_pop * 100)
-                    
+                    today_chance = int(max_pop * 100)
+                    result["precipitation_chance_today"] = today_chance
+                    result["precipitation_chance"] = today_chance
+
+                    # Near-term precipitation chance — next upcoming 3-hour bucket.
+                    # OWM's free /forecast endpoint only provides 3-hour granularity;
+                    # finer resolution requires the paid One Call API.
+                    now_epoch = datetime.now(timezone.utc).timestamp()
+                    next_pop = 0
+                    for item in forecast_data["list"]:
+                        if item.get("dt", 0) >= now_epoch:
+                            next_pop = int((item.get("pop", 0) or 0) * 100)
+                            break
+                    result["precipitation_chance_next"] = next_pop
+
                     # Calculate sunset time from sys data
                     if "sys" in current_data and "sunset" in current_data["sys"]:
                         sunset_timestamp = current_data["sys"]["sunset"]

@@ -41,7 +41,9 @@ For detailed setup instructions, see the **[Setup Guide](./docs/SETUP.md)**.
 {{weather.wind_speed}}           # Wind speed in mph
 {{weather.location}}             # Location name from API
 {{weather.location_name}}        # Your custom location name
-{{weather.precipitation_chance}} # Chance of rain/precipitation (0-100)
+{{weather.precipitation_chance}} # DEPRECATED — use precipitation_chance_today
+{{weather.precipitation_chance_today}} # Chance of rain/precipitation today, peak across the day (0-100)
+{{weather.precipitation_chance_next}} # Chance of precipitation in the near term: next hour on WeatherAPI, next 3-hour window on OpenWeatherMap free tier (0-100)
 {{weather.high_temp}}           # Daily high temperature in Fahrenheit
 {{weather.high_temp_c}}         # Daily high temperature in Celsius
 {{weather.low_temp}}             # Daily low temperature in Fahrenheit
@@ -70,7 +72,9 @@ For detailed setup instructions, see the **[Setup Guide](./docs/SETUP.md)**.
 {{weather.locations.0.low_temp}}              # First location low temp in Fahrenheit
 {{weather.locations.0.low_temp_c}}            # First location low temp in Celsius
 {{weather.locations.0.uv_index}}              # First location UV index
-{{weather.locations.0.precipitation_chance}}  # First location rain chance (0-100)
+{{weather.locations.0.precipitation_chance}}  # DEPRECATED — use precipitation_chance_today
+{{weather.locations.0.precipitation_chance_today}}  # First location rain chance today, peak (0-100)
+{{weather.locations.0.precipitation_chance_next}}  # First location near-term rain chance (0-100)
 {{weather.locations.0.sunset}}                # First location sunset time
 {{weather.locations.1.temperature}}           # Second location temp in Fahrenheit
 {{weather.locations.1.temperature_c}}         # Second location temp in Celsius
@@ -86,7 +90,9 @@ For detailed setup instructions, see the **[Setup Guide](./docs/SETUP.md)**.
 {{weather.locations.1.low_temp}}              # Second location low temp in Fahrenheit
 {{weather.locations.1.low_temp_c}}            # Second location low temp in Celsius
 {{weather.locations.1.uv_index}}              # Second location UV index
-{{weather.locations.1.precipitation_chance}}  # Second location rain chance (0-100)
+{{weather.locations.1.precipitation_chance}}  # DEPRECATED — use precipitation_chance_today
+{{weather.locations.1.precipitation_chance_today}}  # Second location rain chance today, peak (0-100)
+{{weather.locations.1.precipitation_chance_next}}  # Second location near-term rain chance (0-100)
 {{weather.locations.1.sunset}}                # Second location sunset time
 ```
 
@@ -104,7 +110,7 @@ Humidity: {{weather.humidity}}%
 ### VestaBoard-Style Display
 
 ```
-NOW {{weather.temperature}} F {{weather.condition}} {{weather.precipitation_chance}}%
+NOW {{weather.temperature}} F {{weather.condition}} {{weather.precipitation_chance_today}}%
 LIKE {{weather.feels_like}} F WIND {{weather.wind_speed}} MPH
 HIGH {{weather.high_temp}} F UV {{weather.uv_index}}
 LOW {{weather.low_temp}} F SET {{weather.sunset}}
