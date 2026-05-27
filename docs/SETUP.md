@@ -136,7 +136,9 @@ Wind: {weather.wind_speed}mph
 {weather.high_temp_c}        # Daily high temperature in Celsius
 {weather.low_temp}           # Daily low temperature in Fahrenheit
 {weather.low_temp_c}         # Daily low temperature in Celsius
-{weather.precipitation_chance} # Chance of rain as percentage (0-100)
+{weather.precipitation_chance} # DEPRECATED — use precipitation_chance_today
+{weather.precipitation_chance_today} # Chance of rain today, peak across the day (0-100)
+{weather.precipitation_chance_next} # Near-term chance of precipitation: next hour (WeatherAPI) or next 3-hour window (OpenWeatherMap free tier)
 {weather.uv_index}           # UV index value
 {weather.uv_index_color}     # Color tile based on UV index
 {weather.temperature_color}  # Color tile based on temperature
@@ -158,7 +160,9 @@ Access by index (0-based):
 {weather.locations.0.wind_speed}            # Wind speed in mph
 {weather.locations.0.high_temp}             # Daily high in Fahrenheit
 {weather.locations.0.low_temp}              # Daily low in Fahrenheit
-{weather.locations.0.precipitation_chance}  # Rain chance (0-100)
+{weather.locations.0.precipitation_chance}  # DEPRECATED — use precipitation_chance_today
+{weather.locations.0.precipitation_chance_today}  # Rain chance today, peak (0-100)
+{weather.locations.0.precipitation_chance_next}  # Near-term rain chance (0-100)
 {weather.locations.0.uv_index}              # UV index
 {weather.locations.0.sunset}                # Sunset time
 {weather.locations.0.location}              # Location name from API
