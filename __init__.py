@@ -173,7 +173,7 @@ class WeatherPlugin(PluginBase):
         
         # Format for board (22 chars per line, 6 lines)
         temp = data.get("temperature", "??")
-        condition = data.get("condition", "Unknown")[:12]
+        condition = data.get("condition", "Unknown")
         feels = data.get("feels_like", "??")
         humidity = data.get("humidity", "??")
         wind = data.get("wind_speed", "??")
