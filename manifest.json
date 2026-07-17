@@ -1,7 +1,7 @@
 {
   "id": "weather",
   "name": "Weather",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Display current weather conditions with temperature, humidity, and wind speed",
   "author": "FiestaBoard Team",
   "repository": "https://github.com/Fiestaboard/fiestaboard-plugin--weather",
@@ -212,6 +212,13 @@
         "group": "conditions",
         "example": "6"
       },
+      "sunrise": {
+        "description": "Sunrise time",
+        "type": "string",
+        "max_length": 8,
+        "group": "conditions",
+        "example": "6:12 AM"
+      },
       "sunset": {
         "description": "Sunset time",
         "type": "string",
@@ -276,6 +283,7 @@
           "low_temp",
           "low_temp_c",
           "uv_index",
+          "sunrise",
           "sunset"
         ]
       },
@@ -313,6 +321,7 @@
     "locations.*.low_temp": 3,
     "locations.*.low_temp_c": 3,
     "locations.*.uv_index": 2,
+    "locations.*.sunrise": 8,
     "locations.*.sunset": 8,
     "forecast.*.date": 10,
     "forecast.*.day_name": 3,

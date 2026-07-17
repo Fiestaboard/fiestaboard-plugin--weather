@@ -19,7 +19,7 @@ The Weather plugin fetches real-time weather data from WeatherAPI.com or OpenWea
 - Daily high and low temperatures
 - UV index with color coding
 - Precipitation chance
-- Sunset time
+- Sunrise and sunset times
 - Support for multiple locations
 - Choice of weather providers
 
@@ -51,6 +51,7 @@ For detailed setup instructions, see the **[Setup Guide](./docs/SETUP.md)**.
 {{weather.uv_index}}            # UV index (as returned by weather provider)
 {{weather.uv_index_color}}      # UV index color tile
 {{weather.temperature_color}}    # Temperature color tile
+{{weather.sunrise}}              # Sunrise time (e.g., "6:12 AM")
 {{weather.sunset}}               # Sunset time (e.g., "8:36 PM")
 ```
 
@@ -75,6 +76,7 @@ For detailed setup instructions, see the **[Setup Guide](./docs/SETUP.md)**.
 {{weather.locations.0.precipitation_chance}}  # DEPRECATED — use precipitation_chance_today
 {{weather.locations.0.precipitation_chance_today}}  # First location rain chance today, peak (0-100)
 {{weather.locations.0.precipitation_chance_next}}  # First location near-term rain chance (0-100)
+{{weather.locations.0.sunrise}}               # First location sunrise time
 {{weather.locations.0.sunset}}                # First location sunset time
 {{weather.locations.1.temperature}}           # Second location temp in Fahrenheit
 {{weather.locations.1.temperature_c}}         # Second location temp in Celsius
@@ -93,6 +95,7 @@ For detailed setup instructions, see the **[Setup Guide](./docs/SETUP.md)**.
 {{weather.locations.1.precipitation_chance}}  # DEPRECATED — use precipitation_chance_today
 {{weather.locations.1.precipitation_chance_today}}  # Second location rain chance today, peak (0-100)
 {{weather.locations.1.precipitation_chance_next}}  # Second location near-term rain chance (0-100)
+{{weather.locations.1.sunrise}}               # Second location sunrise time
 {{weather.locations.1.sunset}}                # Second location sunset time
 ```
 

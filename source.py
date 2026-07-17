@@ -201,10 +201,13 @@ class WeatherSource:
                             forecast_data["forecast"]["forecastday"]
                         )
 
-                        # Sunset time
+                        # Sunrise/sunset times
+                        sunrise_str = astro_data.get("sunrise", "")
+                        if sunrise_str:
+                            result["sunrise"] = self._format_astro_time(sunrise_str)
                         sunset_str = astro_data.get("sunset", "")
                         if sunset_str:
-                            result["sunset"] = self._format_sunset_time(sunset_str)
+                            result["sunset"] = self._format_astro_time(sunset_str)
                     
                     # Build multi-day forecast array from all forecast days
                     forecast_days = []
@@ -264,28 +267,28 @@ class WeatherSource:
                     return max(rain, snow)
         return 0
 
-    def _format_sunset_time(self, sunset_str: str) -> str:
-        """Format sunset time from API format to '8:36 PM' format.
-        
+    def _format_astro_time(self, time_str: str) -> str:
+        """Format an astro time (sunrise/sunset) from API format to '8:36 PM' format.
+
         Args:
-            sunset_str: Time string from API (e.g., "05:34 PM" or "17:34")
-            
+            time_str: Time string from API (e.g., "05:34 PM" or "17:34")
+
         Returns:
             Formatted time string like "8:36 PM" (hour without leading zero)
         """
         try:
             # Handle formats like "05:34 PM" or "5:34 PM"
-            if "AM" in sunset_str.upper() or "PM" in sunset_str.upper():
+            if "AM" in time_str.upper() or "PM" in time_str.upper():
                 # Already has AM/PM, just remove leading zero from hour
-                match = re.match(r'0?(\d+):(\d+)\s*(AM|PM)', sunset_str, re.IGNORECASE)
+                match = re.match(r'0?(\d+):(\d+)\s*(AM|PM)', time_str, re.IGNORECASE)
                 if match:
                     hour = int(match.group(1))
                     minute = match.group(2)
                     period = match.group(3).upper()
                     return f"{hour}:{minute} {period}"
-            
+
             # Handle 24-hour format
-            match = re.match(r'(\d+):(\d+)', sunset_str)
+            match = re.match(r'(\d+):(\d+)', time_str)
             if match:
                 hour = int(match.group(1))
                 minute = match.group(2)
@@ -299,11 +302,27 @@ class WeatherSource:
                 else:
                     return f"{hour - 12}:{minute} PM"
         except Exception as e:
-            logger.warning(f"Failed to parse sunset time '{sunset_str}': {e}")
-        
+            logger.warning(f"Failed to parse astro time '{time_str}': {e}")
+
         # Return original if parsing fails
-        return sunset_str
-    
+        return time_str
+
+    def _format_owm_timestamp(self, utc_timestamp: int, timezone_offset: int) -> str:
+        """Format an OpenWeatherMap UTC epoch timestamp as local '8:36 PM' time.
+
+        Args:
+            utc_timestamp: UTC epoch seconds (e.g., sys.sunrise / sys.sunset)
+            timezone_offset: Location's UTC offset in seconds
+
+        Returns:
+            Formatted local time string like "8:36 PM" (hour without leading zero)
+        """
+        local_dt = datetime.fromtimestamp(utc_timestamp + timezone_offset, tz=timezone.utc)
+        hour = local_dt.strftime("%I").lstrip("0") or "12"
+        minute = local_dt.strftime("%M")
+        period = local_dt.strftime("%p")
+        return f"{hour}:{minute} {period}"
+
     def _fetch_openweathermap_for_location(self, location: str, location_name: str) -> Optional[Dict[str, Any]]:
         """Fetch weather from OpenWeatherMap for a specific location."""
         # Fetch current weather
@@ -422,19 +441,18 @@ class WeatherSource:
                             break
                     result["precipitation_chance_next"] = next_pop
 
-                    # Calculate sunset time from sys data
-                    if "sys" in current_data and "sunset" in current_data["sys"]:
-                        sunset_timestamp = current_data["sys"]["sunset"]
-                        # Get timezone offset if available (in seconds)
-                        timezone_offset = current_data.get("timezone", 0)
-                        # Sunset timestamp is UTC, add timezone offset for local time
-                        local_timestamp = sunset_timestamp + timezone_offset
-                        sunset_dt = datetime.fromtimestamp(local_timestamp, tz=timezone.utc)
-                        # Format as "8:36 PM" (remove leading zero from hour)
-                        hour = sunset_dt.strftime("%I").lstrip("0") or "12"
-                        minute = sunset_dt.strftime("%M")
-                        period = sunset_dt.strftime("%p")
-                        result["sunset"] = f"{hour}:{minute} {period}"
+                    # Calculate sunrise/sunset times from sys data
+                    sys_data = current_data.get("sys", {})
+                    # Timezone offset if available (in seconds)
+                    timezone_offset = current_data.get("timezone", 0)
+                    if "sunrise" in sys_data:
+                        result["sunrise"] = self._format_owm_timestamp(
+                            sys_data["sunrise"], timezone_offset
+                        )
+                    if "sunset" in sys_data:
+                        result["sunset"] = self._format_owm_timestamp(
+                            sys_data["sunset"], timezone_offset
+                        )
                     
                     # Note: UV index not available in free tier forecast API
                     # Would require One Call API v3.0 (paid)

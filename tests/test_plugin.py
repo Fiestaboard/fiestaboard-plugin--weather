@@ -420,13 +420,14 @@ class TestWeatherForecastData:
                         "daily_chance_of_rain": 0
                     },
                     "astro": {
+                        "sunrise": "07:15 AM",
                         "sunset": "05:36 PM"
                     }
                 }]
             }
         }
         forecast_response.raise_for_status = Mock()
-        
+
         # Return current first, then forecast
         mock_get.side_effect = [current_response, forecast_response]
         
@@ -445,6 +446,7 @@ class TestWeatherForecastData:
         assert result["precipitation_chance"] == 0
         assert result["precipitation_chance_today"] == 0
         assert result["sunset"] == "5:36 PM"
+        assert result["sunrise"] == "7:15 AM"
         # Check Celsius conversions
         assert "temperature_c" in result
         assert "feels_like_c" in result
@@ -501,7 +503,10 @@ class TestWeatherForecastData:
         # Create a sunset timestamp (example: 8:36 PM today)
         sunset_time = datetime.now(timezone.utc).replace(hour=20, minute=36, second=0, microsecond=0)
         sunset_timestamp = int(sunset_time.timestamp())
-        
+        # Create a sunrise timestamp (example: 6:12 AM today)
+        sunrise_time = datetime.now(timezone.utc).replace(hour=6, minute=12, second=0, microsecond=0)
+        sunrise_timestamp = int(sunrise_time.timestamp())
+
         current_response.json.return_value = {
             "main": {
                 "temp": 63,
@@ -515,6 +520,7 @@ class TestWeatherForecastData:
             "wind": {"speed": 14},
             "name": "San Francisco",
             "sys": {
+                "sunrise": sunrise_timestamp,
                 "sunset": sunset_timestamp
             },
             "timezone": -28800  # PST offset in seconds
@@ -550,6 +556,8 @@ class TestWeatherForecastData:
         assert result["precipitation_chance_today"] == 10
         assert "sunset" in result
         assert result["sunset"].endswith("PM") or result["sunset"].endswith("AM")
+        assert "sunrise" in result
+        assert result["sunrise"].endswith("PM") or result["sunrise"].endswith("AM")
 
     @patch('requests.get')
     def test_openweathermap_precipitation_uses_today_not_first_period(self, mock_get):
@@ -749,22 +757,23 @@ class TestWeatherForecastData:
         assert result["precipitation_chance"] == 90
         assert result["precipitation_chance_next"] == 20
 
-    def test_sunset_time_formatting(self):
-        """Test sunset time formatting."""
+    def test_astro_time_formatting(self):
+        """Test sunrise/sunset time formatting."""
         from plugins.weather.source import WeatherSource
-        
+
         source = WeatherSource(
             provider="weatherapi",
             api_key="test_key",
             locations=[{"location": "SF", "name": "SF"}]
         )
-        
+
         # Test various formats
-        assert source._format_sunset_time("05:34 PM") == "5:34 PM"
-        assert source._format_sunset_time("8:36 PM") == "8:36 PM"
-        assert source._format_sunset_time("17:34") == "5:34 PM"
-        assert source._format_sunset_time("12:00 PM") == "12:00 PM"
-        assert source._format_sunset_time("00:00") == "12:00 AM"
+        assert source._format_astro_time("05:34 PM") == "5:34 PM"
+        assert source._format_astro_time("8:36 PM") == "8:36 PM"
+        assert source._format_astro_time("17:34") == "5:34 PM"
+        assert source._format_astro_time("12:00 PM") == "12:00 PM"
+        assert source._format_astro_time("00:00") == "12:00 AM"
+        assert source._format_astro_time("06:12 AM") == "6:12 AM"
     
     @patch('requests.get')
     def test_plugin_includes_forecast_fields(self, mock_get, weather_manifest):
@@ -798,15 +807,16 @@ class TestWeatherForecastData:
                         "daily_chance_of_rain": 0
                     },
                     "astro": {
+                        "sunrise": "07:15 AM",
                         "sunset": "05:36 PM"
                     }
                 }]
             }
         }
         forecast_response.raise_for_status = Mock()
-        
+
         mock_get.side_effect = [current_response, forecast_response]
-        
+
         from plugins.weather import WeatherPlugin
         plugin = WeatherPlugin(weather_manifest)
         plugin._config = {
@@ -824,6 +834,8 @@ class TestWeatherForecastData:
         assert "low_temp" in result.data
         assert "uv_index" in result.data
         assert "sunset" in result.data
+        assert "sunrise" in result.data
+        assert result.data["sunrise"] == "7:15 AM"
         assert result.data["high_temp"] == 65
         assert result.data["low_temp"] == 52
         assert result.data["uv_index"] == 5
@@ -1503,7 +1515,7 @@ class TestManifestMetadata:
 
     def test_simple_var_count(self):
         simple = self.manifest["variables"]["simple"]
-        assert len(simple) == 20, f"Expected 20 simple vars, got {len(simple)}"
+        assert len(simple) == 21, f"Expected 21 simple vars, got {len(simple)}"
 
     def test_arrays_present(self):
         arrays = self.manifest["variables"]["arrays"]

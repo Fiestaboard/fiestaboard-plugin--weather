@@ -142,6 +142,7 @@ Wind: {weather.wind_speed}mph
 {weather.uv_index}           # UV index value
 {weather.uv_index_color}     # Color tile based on UV index
 {weather.temperature_color}  # Color tile based on temperature
+{weather.sunrise}            # Sunrise time (e.g., "6:12 AM")
 {weather.sunset}             # Sunset time (e.g., "7:42 PM")
 {weather.location}           # Location name from API (e.g., "San Francisco")
 {weather.location_name}      # Your custom display name (e.g., "HOME")
@@ -164,6 +165,7 @@ Access by index (0-based):
 {weather.locations.0.precipitation_chance_today}  # Rain chance today, peak (0-100)
 {weather.locations.0.precipitation_chance_next}  # Near-term rain chance (0-100)
 {weather.locations.0.uv_index}              # UV index
+{weather.locations.0.sunrise}               # Sunrise time
 {weather.locations.0.sunset}                # Sunset time
 {weather.locations.0.location}              # Location name from API
 {weather.locations.0.location_name}         # Custom display name (e.g., "HOME")
