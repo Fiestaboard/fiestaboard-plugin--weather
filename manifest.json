@@ -1,7 +1,7 @@
 {
   "id": "weather",
   "name": "Weather",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "Display current weather conditions with temperature, humidity, and wind speed",
   "author": "FiestaBoard Team",
   "repository": "https://github.com/Fiestaboard/fiestaboard-plugin--weather",
@@ -177,6 +177,13 @@
         "group": "conditions",
         "example": "Partly Cloudy"
       },
+      "condition_short": {
+        "description": "Note-friendly weather condition, normalized to nine characters or fewer",
+        "type": "string",
+        "max_length": 9,
+        "group": "conditions",
+        "example": "CLOUDY"
+      },
       "humidity": {
         "description": "Humidity percentage",
         "type": "number",
@@ -221,6 +228,20 @@
       },
       "sunset": {
         "description": "Sunset time",
+        "type": "string",
+        "max_length": 8,
+        "group": "conditions",
+        "example": "7:42 PM"
+      },
+      "next_sun_event": {
+        "description": "Next solar transition: RISE at night, SET during daylight",
+        "type": "string",
+        "max_length": 4,
+        "group": "conditions",
+        "example": "SET"
+      },
+      "next_sun_event_time": {
+        "description": "Time of the next sunrise or sunset",
         "type": "string",
         "max_length": 8,
         "group": "conditions",
@@ -271,6 +292,7 @@
           "feels_like",
           "feels_like_c",
           "condition",
+          "condition_short",
           "humidity",
           "wind_speed",
           "location",
@@ -284,7 +306,9 @@
           "low_temp_c",
           "uv_index",
           "sunrise",
-          "sunset"
+          "sunset",
+          "next_sun_event",
+          "next_sun_event_time"
         ]
       },
       "forecast": {
@@ -309,6 +333,7 @@
     "locations.*.feels_like": 3,
     "locations.*.feels_like_c": 3,
     "locations.*.condition": 12,
+    "locations.*.condition_short": 9,
     "locations.*.humidity": 3,
     "locations.*.wind_speed": 3,
     "locations.*.location": 15,
@@ -323,6 +348,8 @@
     "locations.*.uv_index": 2,
     "locations.*.sunrise": 8,
     "locations.*.sunset": 8,
+    "locations.*.next_sun_event": 4,
+    "locations.*.next_sun_event_time": 8,
     "forecast.*.date": 10,
     "forecast.*.day_name": 3,
     "forecast.*.high_temp": 3,
@@ -415,7 +442,7 @@
         "NOW  {{weather.locations.0.temperature}}F   {{weather.locations.0.condition}}    {{weather.locations.0.humidity}}%",
         "LIKE {{weather.locations.0.feels_like}}F WIND {{weather.locations.0.wind_speed}}  MPH",
         "HIGH {{weather.locations.0.high_temp}}F  UV {{weather.locations.0.uv_index}}{{weather.uv_index_color}}",
-        "LOW {{weather.locations.0.low_temp}}F  SET {{weather.locations.0.sunset}}"
+        "LOW {{weather.locations.0.low_temp}}F {{weather.locations.0.next_sun_event}} {{weather.locations.0.next_sun_event_time}}"
       ],
       "line_metadata": [
         {
@@ -448,7 +475,7 @@
       "name": "Weather (Note)",
       "template": [
         "{{weather.locations.0.location_name}}",
-        "{{weather.locations.0.temperature}}F {{weather.locations.0.condition}}",
+        "{{weather.locations.0.temperature}}F {{weather.locations.0.condition_short}}",
         "HI {{weather.locations.0.high_temp}} LO {{weather.locations.0.low_temp}}"
       ],
       "line_metadata": [

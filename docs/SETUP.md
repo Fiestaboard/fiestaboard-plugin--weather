@@ -130,6 +130,7 @@ Wind: {weather.wind_speed}mph
 {weather.feels_like}         # Feels like temperature in Fahrenheit (e.g., "65")
 {weather.feels_like_c}       # Feels like temperature in Celsius (e.g., "18")
 {weather.condition}          # Weather condition (e.g., "Partly Cloudy")
+{weather.condition_short}    # Note-friendly condition (e.g., "CLOUDY")
 {weather.humidity}           # Humidity percentage (e.g., "75")
 {weather.wind_speed}         # Wind speed in mph (e.g., "12")
 {weather.high_temp}          # Daily high temperature in Fahrenheit
@@ -144,10 +145,16 @@ Wind: {weather.wind_speed}mph
 {weather.temperature_color}  # Color tile based on temperature
 {weather.sunrise}            # Sunrise time (e.g., "6:12 AM")
 {weather.sunset}             # Sunset time (e.g., "7:42 PM")
+{weather.next_sun_event}     # RISE at night, SET during daylight
+{weather.next_sun_event_time} # Time of the next sunrise or sunset
 {weather.location}           # Location name from API (e.g., "San Francisco")
 {weather.location_name}      # Your custom display name (e.g., "HOME")
 {weather.location_count}     # Number of configured locations
 ```
+
+> **OpenWeatherMap DST note:** After sunset, tomorrow's sunrise is calculated
+> using OpenWeatherMap's current UTC offset. It can be one hour off on the
+> night before a daylight-saving transition, until the provider offset updates.
 
 ### Multiple Locations
 
@@ -157,6 +164,7 @@ Access by index (0-based):
 {weather.locations.0.temperature_c}         # Temperature in Celsius
 {weather.locations.0.feels_like}            # Feels-like temp in Fahrenheit
 {weather.locations.0.condition}             # Weather condition
+{weather.locations.0.condition_short}       # Note-friendly weather condition
 {weather.locations.0.humidity}              # Humidity percentage
 {weather.locations.0.wind_speed}            # Wind speed in mph
 {weather.locations.0.high_temp}             # Daily high in Fahrenheit
@@ -167,6 +175,8 @@ Access by index (0-based):
 {weather.locations.0.uv_index}              # UV index
 {weather.locations.0.sunrise}               # Sunrise time
 {weather.locations.0.sunset}                # Sunset time
+{weather.locations.0.next_sun_event}        # Next event: RISE or SET
+{weather.locations.0.next_sun_event_time}   # Next sunrise/sunset time
 {weather.locations.0.location}              # Location name from API
 {weather.locations.0.location_name}         # Custom display name (e.g., "HOME")
 
@@ -641,4 +651,3 @@ GET /displays/weather/raw
 4. Create a page with weather conditions
 5. Set as active or combine with other features for complete briefing
 6. Enjoy your weather at a glance! ☀️
-

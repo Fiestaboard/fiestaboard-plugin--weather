@@ -4,10 +4,11 @@ Supports WeatherAPI.com and OpenWeatherMap providers.
 """
 
 import logging
+import math
 import requests
 import re
 from typing import Any, Dict, List, Optional
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +38,56 @@ def _get_temperature_color(temp_f: Any) -> str:
     if temp >= 45:
         return "blue"
     return "violet"
+
+
+def _get_short_condition(condition: Any) -> str:
+    """Return a Note-friendly condition label no longer than nine characters."""
+    if not isinstance(condition, str):
+        return ""
+
+    normalized = " ".join(condition.upper().split())
+    if not normalized:
+        return ""
+
+    mappings = (
+        ("THUNDER", "T-STORM"),
+        ("TORNADO", "TORNADO"),
+        ("SQUALL", "SQUALL"),
+        ("FREEZING", "ICE"),
+        ("ICE PELLET", "SLEET"),
+        ("SLEET", "SLEET"),
+        ("BLIZZARD", "BLIZZARD"),
+        ("SNOW", "SNOW"),
+        ("DRIZZLE", "DRIZZLE"),
+        ("SHOWER", "SHOWERS"),
+        ("RAIN", "RAIN"),
+        ("FOG", "FOG"),
+        ("MIST", "MIST"),
+        ("HAZE", "HAZE"),
+        ("SMOKE", "SMOKE"),
+        ("DUST", "DUST"),
+        ("SAND", "DUST"),
+        ("OVERCAST", "CLOUDY"),
+        ("CLOUD", "CLOUDY"),
+        ("CLEAR", "CLEAR"),
+        ("SUNNY", "SUNNY"),
+        ("WIND", "WINDY"),
+        ("GALE", "WINDY"),
+    )
+    for keyword, label in mappings:
+        if keyword in normalized:
+            return label
+
+    if len(normalized) <= 9:
+        return normalized
+
+    words = []
+    for word in normalized.split():
+        candidate = " ".join((*words, word))
+        if len(candidate) > 9:
+            break
+        words.append(word)
+    return " ".join(words) if words else normalized[:9]
 
 
 class WeatherSource:
@@ -147,12 +198,14 @@ class WeatherSource:
             temp_c = (temp_f - 32) * 5 / 9 if isinstance(temp_f, (int, float)) else None
             feels_like_c = (feels_like_f - 32) * 5 / 9 if isinstance(feels_like_f, (int, float)) else None
             
+            condition = current_data["current"]["condition"]["text"]
             result = {
                 "temperature": round(temp_f) if isinstance(temp_f, (int, float)) else temp_f,
                 "temperature_c": round(temp_c) if temp_c is not None else None,
                 "feels_like": round(feels_like_f) if isinstance(feels_like_f, (int, float)) else feels_like_f,
                 "feels_like_c": round(feels_like_c) if feels_like_c is not None else None,
-                "condition": current_data["current"]["condition"]["text"],
+                "condition": condition,
+                "condition_short": _get_short_condition(condition),
                 "humidity": current_data["current"]["humidity"],
                 "wind_mph": current_data["current"]["wind_mph"],
                 "wind_speed": current_data["current"]["wind_mph"],  # Alias for template compatibility
@@ -208,6 +261,43 @@ class WeatherSource:
                         sunset_str = astro_data.get("sunset", "")
                         if sunset_str:
                             result["sunset"] = self._format_astro_time(sunset_str)
+
+                        # Expose the next solar transition for compact templates.
+                        # After today's sunset, use tomorrow's forecast sunrise.
+                        sunrise_time = result.get("sunrise")
+                        sunset_time = result.get("sunset")
+                        if (
+                            self._time_minutes(sunrise_time) is not None
+                            and self._time_minutes(sunset_time) is not None
+                        ):
+                            is_day = current_data["current"].get("is_day")
+                            if is_day == 1:
+                                result["next_sun_event"] = "SET"
+                                result["next_sun_event_time"] = sunset_time
+                            elif is_day == 0:
+                                localtime = current_data.get("location", {}).get("localtime", "")
+                                current_minutes = self._time_minutes(
+                                    localtime.rsplit(" ", 1)[-1]
+                                )
+                                sunset_minutes = self._time_minutes(sunset_time)
+                                if (
+                                    current_minutes is not None
+                                    and sunset_minutes is not None
+                                    and current_minutes >= sunset_minutes
+                                ):
+                                    forecastdays = forecast_data["forecast"]["forecastday"]
+                                    if len(forecastdays) > 1:
+                                        tomorrow_sunrise = forecastdays[1].get(
+                                            "astro", {}
+                                        ).get("sunrise", "")
+                                        if self._time_minutes(tomorrow_sunrise) is not None:
+                                            result["next_sun_event"] = "RISE"
+                                            result["next_sun_event_time"] = (
+                                                self._format_astro_time(tomorrow_sunrise)
+                                            )
+                                elif current_minutes is not None:
+                                    result["next_sun_event"] = "RISE"
+                                    result["next_sun_event_time"] = sunrise_time
                     
                     # Build multi-day forecast array from all forecast days
                     forecast_days = []
@@ -323,6 +413,103 @@ class WeatherSource:
         period = local_dt.strftime("%p")
         return f"{hour}:{minute} {period}"
 
+    @staticmethod
+    def _time_minutes(time_str: Any) -> Optional[int]:
+        """Convert a 12- or 24-hour time string to minutes after midnight."""
+        if not isinstance(time_str, str):
+            return None
+        for fmt in ("%I:%M %p", "%H:%M"):
+            try:
+                parsed = datetime.strptime(time_str.strip(), fmt)
+                return parsed.hour * 60 + parsed.minute
+            except ValueError:
+                continue
+        return None
+
+    @staticmethod
+    def _format_datetime_time(value: datetime) -> str:
+        hour = value.strftime("%I").lstrip("0") or "12"
+        return f"{hour}:{value.strftime('%M')} {value.strftime('%p')}"
+
+    def _openweathermap_tomorrow_sunrise(
+        self, current_data: Dict[str, Any], timezone_offset: int | float
+    ) -> Optional[str]:
+        """Calculate tomorrow's sunrise using NOAA and OWM's UTC offset.
+
+        OpenWeatherMap does not expose an IANA timezone, so the result can be
+        one hour off on the night before a daylight-saving transition.
+        """
+        coord = current_data.get("coord", {})
+        latitude = coord.get("lat")
+        longitude = coord.get("lon")
+        current_timestamp = current_data.get("dt")
+        if not self._is_finite_number(latitude) or not -90 < latitude < 90:
+            return None
+        if not self._is_finite_number(longitude) or not -180 <= longitude <= 180:
+            return None
+        if not self._is_finite_number(current_timestamp):
+            return None
+
+        try:
+            local_timezone = timezone(timedelta(seconds=timezone_offset))
+            local_date = datetime.fromtimestamp(
+                current_timestamp, tz=timezone.utc
+            ).astimezone(local_timezone).date()
+            target_date = local_date + timedelta(days=1)
+
+            day_of_year = target_date.timetuple().tm_yday
+            longitude_hour = longitude / 15
+            approximate_time = day_of_year + ((6 - longitude_hour) / 24)
+            mean_anomaly = (0.9856 * approximate_time) - 3.289
+            true_longitude = (
+                mean_anomaly
+                + 1.916 * math.sin(math.radians(mean_anomaly))
+                + 0.020 * math.sin(math.radians(2 * mean_anomaly))
+                + 282.634
+            ) % 360
+            right_ascension = math.degrees(
+                math.atan(0.91764 * math.tan(math.radians(true_longitude)))
+            ) % 360
+            right_ascension += (
+                math.floor(true_longitude / 90) * 90
+                - math.floor(right_ascension / 90) * 90
+            )
+            right_ascension /= 15
+
+            sin_declination = 0.39782 * math.sin(math.radians(true_longitude))
+            cos_declination = math.cos(math.asin(sin_declination))
+            cos_hour_angle = (
+                math.cos(math.radians(90.833))
+                - sin_declination * math.sin(math.radians(latitude))
+            ) / (cos_declination * math.cos(math.radians(latitude)))
+            if not -1 <= cos_hour_angle <= 1:
+                return None
+
+            hour_angle = (360 - math.degrees(math.acos(cos_hour_angle))) / 15
+            local_mean_time = (
+                hour_angle
+                + right_ascension
+                - 0.06571 * approximate_time
+                - 6.622
+            )
+            utc_hours = (local_mean_time - longitude_hour) % 24
+            local_minutes = round(
+                (utc_hours + timezone_offset / 3600) * 60
+            ) % (24 * 60)
+            sunrise_dt = datetime(2000, 1, 1) + timedelta(minutes=local_minutes)
+            return self._format_datetime_time(sunrise_dt)
+        except (TypeError, ValueError, OverflowError) as exc:
+            logger.warning("Failed to calculate tomorrow's sunrise: %s", exc)
+            return None
+
+    @staticmethod
+    def _is_finite_number(value: Any) -> bool:
+        return (
+            isinstance(value, (int, float))
+            and not isinstance(value, bool)
+            and math.isfinite(value)
+        )
+
     def _fetch_openweathermap_for_location(self, location: str, location_name: str) -> Optional[Dict[str, Any]]:
         """Fetch weather from OpenWeatherMap for a specific location."""
         # Fetch current weather
@@ -349,19 +536,68 @@ class WeatherSource:
             temp_c = (temp - 32) * 5 / 9 if isinstance(temp, (int, float)) else None
             feels_like_c = (feels_like - 32) * 5 / 9 if isinstance(feels_like, (int, float)) else None
             
+            condition = current_data["weather"][0]["main"]
+            description = current_data["weather"][0]["description"]
             result = {
                 "temperature": round(temp) if isinstance(temp, (int, float)) else temp,
                 "temperature_c": round(temp_c) if temp_c is not None else None,
                 "feels_like": round(feels_like) if isinstance(feels_like, (int, float)) else feels_like,
                 "feels_like_c": round(feels_like_c) if feels_like_c is not None else None,
-                "condition": current_data["weather"][0]["main"],
-                "description": current_data["weather"][0]["description"],
+                "condition": condition,
+                "condition_short": _get_short_condition(description or condition),
+                "description": description,
                 "humidity": current_data["main"]["humidity"],
                 "wind_mph": current_data["wind"]["speed"],
                 "wind_speed": current_data["wind"]["speed"],  # Alias for template compatibility
                 "location": current_data.get("name", location),
                 "location_name": location_name
             }
+
+            # Solar times come from the current-weather response, so keep them
+            # available even if the separate forecast request fails.
+            timezone_offset = current_data.get("timezone", 0)
+            if not self._is_finite_number(timezone_offset):
+                timezone_offset = 0
+            sys_data = current_data.get("sys", {})
+            for sun_event in ("sunrise", "sunset"):
+                sun_timestamp = sys_data.get(sun_event)
+                if not self._is_finite_number(sun_timestamp):
+                    continue
+                try:
+                    result[sun_event] = self._format_owm_timestamp(
+                        sun_timestamp, timezone_offset
+                    )
+                except (ValueError, OverflowError, OSError):
+                    continue
+
+            current_timestamp = current_data.get("dt")
+            sunrise_timestamp = sys_data.get("sunrise")
+            sunset_timestamp = sys_data.get("sunset")
+            if (
+                all(
+                    self._is_finite_number(value)
+                    for value in (
+                        current_timestamp,
+                        sunrise_timestamp,
+                        sunset_timestamp,
+                    )
+                )
+                and "sunrise" in result
+                and "sunset" in result
+            ):
+                if sunrise_timestamp <= current_timestamp < sunset_timestamp:
+                    result["next_sun_event"] = "SET"
+                    result["next_sun_event_time"] = result["sunset"]
+                elif current_timestamp >= sunset_timestamp:
+                    tomorrow_sunrise = self._openweathermap_tomorrow_sunrise(
+                        current_data, timezone_offset
+                    )
+                    if tomorrow_sunrise:
+                        result["next_sun_event"] = "RISE"
+                        result["next_sun_event_time"] = tomorrow_sunrise
+                else:
+                    result["next_sun_event"] = "RISE"
+                    result["next_sun_event_time"] = result["sunrise"]
             
             # Try to fetch forecast data (non-blocking if it fails)
             # No cnt limit: fetch full 5-day/3-hour forecast for multi-day display
@@ -441,19 +677,6 @@ class WeatherSource:
                             break
                     result["precipitation_chance_next"] = next_pop
 
-                    # Calculate sunrise/sunset times from sys data
-                    sys_data = current_data.get("sys", {})
-                    # Timezone offset if available (in seconds)
-                    timezone_offset = current_data.get("timezone", 0)
-                    if "sunrise" in sys_data:
-                        result["sunrise"] = self._format_owm_timestamp(
-                            sys_data["sunrise"], timezone_offset
-                        )
-                    if "sunset" in sys_data:
-                        result["sunset"] = self._format_owm_timestamp(
-                            sys_data["sunset"], timezone_offset
-                        )
-                    
                     # Note: UV index not available in free tier forecast API
                     # Would require One Call API v3.0 (paid)
                     result["uv_index"] = None
@@ -499,4 +722,3 @@ class WeatherSource:
         except KeyError as e:
             logger.error(f"Unexpected response format from OpenWeatherMap for {location_name}: {e}")
             return None
-

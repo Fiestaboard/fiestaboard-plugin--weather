@@ -72,6 +72,7 @@ class TestWeatherSource:
         assert result is not None
         assert isinstance(result, dict)
         assert result["temperature"] == 72
+        assert result["condition_short"] == "SUNNY"
     
     @patch('requests.get')
     def test_fetch_weather_api_error(self, mock_get):
@@ -401,9 +402,13 @@ class TestWeatherForecastData:
                 "condition": {"text": "Rain"},
                 "humidity": 80,
                 "wind_mph": 14,
-                "uv": 5
+                "uv": 5,
+                "is_day": 1
             },
-            "location": {"name": "San Francisco"}
+            "location": {
+                "name": "San Francisco",
+                "localtime": "2026-07-15 12:00"
+            }
         }
         current_response.raise_for_status = Mock()
         
@@ -447,11 +452,75 @@ class TestWeatherForecastData:
         assert result["precipitation_chance_today"] == 0
         assert result["sunset"] == "5:36 PM"
         assert result["sunrise"] == "7:15 AM"
+        assert result["next_sun_event"] == "SET"
+        assert result["next_sun_event_time"] == "5:36 PM"
         # Check Celsius conversions
         assert "temperature_c" in result
         assert "feels_like_c" in result
         assert "high_temp_c" in result
         assert "low_temp_c" in result
+
+    @pytest.mark.parametrize("tomorrow_sunrise,expected", [
+        ("06:25 AM", "6:25 AM"),
+        ("nonsense", None),
+        ("99:99 PM", None),
+    ])
+    @patch('requests.get')
+    def test_weatherapi_after_sunset_uses_valid_tomorrow_sunrise(
+        self, mock_get, tomorrow_sunrise, expected
+    ):
+        current_response = Mock()
+        current_response.json.return_value = {
+            "current": {
+                "temp_f": 63,
+                "feelslike_f": 62,
+                "condition": {"text": "Clear"},
+                "humidity": 50,
+                "wind_mph": 4,
+                "is_day": 0,
+            },
+            "location": {
+                "name": "San Francisco",
+                "localtime": "2026-07-15 21:00",
+            },
+        }
+        current_response.raise_for_status = Mock()
+
+        forecast_response = Mock()
+        forecast_response.json.return_value = {
+            "forecast": {"forecastday": [
+                {
+                    "date": "2026-07-15",
+                    "day": {"maxtemp_f": 70, "mintemp_f": 55},
+                    "astro": {"sunrise": "06:24 AM", "sunset": "08:36 PM"},
+                },
+                {
+                    "date": "2026-07-16",
+                    "day": {"maxtemp_f": 71, "mintemp_f": 56},
+                    "astro": {
+                        "sunrise": tomorrow_sunrise,
+                        "sunset": "08:35 PM",
+                    },
+                },
+            ]}
+        }
+        forecast_response.raise_for_status = Mock()
+        mock_get.side_effect = [current_response, forecast_response]
+
+        source = WeatherSource(
+            provider="weatherapi",
+            api_key="test_key",
+            locations=[{"location": "San Francisco, CA", "name": "SF"}],
+        )
+        result = source.fetch_current_weather()
+
+        assert result is not None
+        if expected is None:
+            assert "next_sun_event" not in result
+            assert "next_sun_event_time" not in result
+        else:
+            assert result["next_sun_event"] == "RISE"
+            assert result["next_sun_event_time"] == expected
     
     @patch('requests.get')
     def test_weatherapi_forecast_fallback(self, mock_get):
@@ -550,6 +619,7 @@ class TestWeatherForecastData:
 
         assert result is not None
         assert result["temperature"] == 63
+        assert result["condition_short"] == "RAIN"
         assert result["high_temp"] == 65
         assert result["low_temp"] == 52
         assert result["precipitation_chance"] == 10  # max(0.0, 0.1) * 100
@@ -558,6 +628,128 @@ class TestWeatherForecastData:
         assert result["sunset"].endswith("PM") or result["sunset"].endswith("AM")
         assert "sunrise" in result
         assert result["sunrise"].endswith("PM") or result["sunrise"].endswith("AM")
+
+    @patch('requests.get')
+    def test_openweathermap_sun_times_survive_forecast_failure(self, mock_get):
+        """Solar fields come from current weather, independent of forecast."""
+        from requests.exceptions import RequestException
+
+        current_response = Mock()
+        current_response.json.return_value = {
+            "main": {"temp": 63, "feels_like": 62, "humidity": 80},
+            "weather": [{"main": "Clear", "description": "clear sky"}],
+            "wind": {"speed": 4},
+            "name": "San Francisco",
+            "dt": 7200,
+            "sys": {"sunrise": 21600, "sunset": 64800},
+            "timezone": 0,
+        }
+        current_response.raise_for_status = Mock()
+        mock_get.side_effect = [
+            current_response,
+            RequestException("forecast unavailable"),
+        ]
+
+        source = WeatherSource(
+            provider="openweathermap",
+            api_key="test_key",
+            locations=[{"location": "San Francisco, CA", "name": "SF"}],
+        )
+        result = source.fetch_current_weather()
+
+        assert result is not None
+        assert result["sunrise"] == "6:00 AM"
+        assert result["sunset"] == "6:00 PM"
+        assert result["next_sun_event"] == "RISE"
+        assert result["next_sun_event_time"] == "6:00 AM"
+
+    @patch.object(
+        WeatherSource, '_openweathermap_tomorrow_sunrise', return_value="6:01 AM"
+    )
+    @patch('requests.get')
+    def test_openweathermap_after_sunset_uses_tomorrows_sunrise(
+        self, mock_get, mock_tomorrow_sunrise
+    ):
+        from requests.exceptions import RequestException
+
+        current_response = Mock()
+        current_response.json.return_value = {
+            "main": {"temp": 63, "feels_like": 62, "humidity": 80},
+            "weather": [{"main": "Clear", "description": "clear sky"}],
+            "wind": {"speed": 4},
+            "name": "San Francisco",
+            "coord": {"lat": 37.77, "lon": -122.41},
+            "dt": 70000,
+            "sys": {"sunrise": 21600, "sunset": 64800},
+            "timezone": 0,
+        }
+        current_response.raise_for_status = Mock()
+        mock_get.side_effect = [
+            current_response,
+            RequestException("forecast unavailable"),
+        ]
+
+        source = WeatherSource(
+            provider="openweathermap",
+            api_key="test_key",
+            locations=[{"location": "San Francisco, CA", "name": "SF"}],
+        )
+        result = source.fetch_current_weather()
+
+        assert result is not None
+        assert result["next_sun_event"] == "RISE"
+        assert result["next_sun_event_time"] == "6:01 AM"
+        mock_tomorrow_sunrise.assert_called_once()
+
+    def test_openweathermap_calculates_tomorrow_sunrise_without_dependencies(self):
+        source = WeatherSource(
+            provider="openweathermap", api_key="test_key", locations=[]
+        )
+        result = source._openweathermap_tomorrow_sunrise({
+            "coord": {"lat": 37.7749, "lon": -122.4194},
+            # July 15, 2026 at 9:00 PM PDT
+            "dt": 1784174400,
+        }, -25200)
+
+        assert result == "6:00 AM"
+
+    @pytest.mark.parametrize("sunrise,sunset", [
+        (None, None),
+        (float("nan"), float("inf")),
+        (1e100, -1e100),
+    ])
+    @patch('requests.get')
+    def test_openweathermap_ignores_invalid_sun_times(
+        self, mock_get, sunrise, sunset
+    ):
+        from requests.exceptions import RequestException
+
+        current_response = Mock()
+        current_response.json.return_value = {
+            "main": {"temp": 63, "feels_like": 62, "humidity": 80},
+            "weather": [{"main": "Clear", "description": "clear sky"}],
+            "wind": {"speed": 4},
+            "name": "Polar Station",
+            "dt": 70000,
+            "sys": {"sunrise": sunrise, "sunset": sunset},
+            "timezone": 0,
+        }
+        current_response.raise_for_status = Mock()
+        mock_get.side_effect = [
+            current_response,
+            RequestException("forecast unavailable"),
+        ]
+
+        source = WeatherSource(
+            provider="openweathermap",
+            api_key="test_key",
+            locations=[{"location": "Polar Station", "name": "POLAR"}],
+        )
+        result = source.fetch_current_weather()
+
+        assert result is not None
+        assert "sunrise" not in result
+        assert "next_sun_event" not in result
 
     @patch('requests.get')
     def test_openweathermap_precipitation_uses_today_not_first_period(self, mock_get):
@@ -1153,6 +1345,37 @@ class TestGetTemperatureColor:
         assert _get_temperature_color("not_a_number") == "white"
 
 
+class TestGetShortCondition:
+    """Tests for compact condition labels used on Note displays."""
+
+    @pytest.mark.parametrize(("condition", "expected"), [
+        ("Partly cloudy", "CLOUDY"),
+        ("Overcast", "CLOUDY"),
+        ("Patchy light rain with thunder", "T-STORM"),
+        ("Light rain shower", "SHOWERS"),
+        ("Freezing rain", "ICE"),
+        ("Ice pellets", "SLEET"),
+        ("Blowing snow", "SNOW"),
+        ("Mist", "MIST"),
+        ("Sunny", "SUNNY"),
+        ("Clear", "CLEAR"),
+        ("Unsettled weather", "UNSETTLED"),
+        (None, ""),
+    ])
+    def test_condition_mapping(self, condition, expected):
+        from plugins.weather.source import _get_short_condition
+
+        assert _get_short_condition(condition) == expected
+
+    def test_unknown_condition_keeps_whole_words(self):
+        from plugins.weather.source import _get_short_condition
+
+        value = _get_short_condition("Very unusual weather")
+
+        assert value == "VERY"
+        assert len(value) <= 9
+
+
 class TestWeatherApiForecastArray:
     """Tests for multi-day forecast array from WeatherAPI."""
 
@@ -1468,6 +1691,7 @@ class TestForecastDisplay:
                 "feels_like": 62,
                 "feels_like_c": 17,
                 "condition": "Rain",
+                "condition_short": "RAIN",
                 "humidity": 80,
                 "wind_speed": 14,
                 "location": "San Francisco",
@@ -1488,6 +1712,7 @@ class TestForecastDisplay:
         with patch.object(plugin, '_get_source', return_value=mock_source):
             result = plugin.fetch_data()
             assert result.available is True
+            assert result.data["condition_short"] == "RAIN"
             assert "forecast" in result.data
             assert len(result.data["forecast"]) == 2
 
@@ -1515,7 +1740,33 @@ class TestManifestMetadata:
 
     def test_simple_var_count(self):
         simple = self.manifest["variables"]["simple"]
-        assert len(simple) == 21, f"Expected 21 simple vars, got {len(simple)}"
+        assert len(simple) == 24, f"Expected 24 simple vars, got {len(simple)}"
+
+    def test_short_condition_is_exposed_for_note_displays(self):
+        simple = self.manifest["variables"]["simple"]
+        location_fields = self.manifest["variables"]["arrays"]["locations"]["item_fields"]
+
+        assert simple["condition_short"]["max_length"] == 9
+        assert "condition_short" in location_fields
+        assert self.manifest["max_lengths"]["locations.*.condition_short"] == 9
+        assert "condition_short" in self.manifest["demo"]["note"]["template"][1]
+
+    def test_next_sun_event_is_exposed_for_primary_and_location_data(self):
+        simple = self.manifest["variables"]["simple"]
+        location_fields = self.manifest["variables"]["arrays"]["locations"]["item_fields"]
+
+        assert simple["next_sun_event"]["type"] == "string"
+        assert simple["next_sun_event_time"]["type"] == "string"
+        assert "next_sun_event" in location_fields
+        assert "next_sun_event_time" in location_fields
+        assert self.manifest["max_lengths"]["locations.*.next_sun_event"] == 4
+        assert self.manifest["max_lengths"]["locations.*.next_sun_event_time"] == 8
+
+    def test_flagship_demo_uses_next_sun_event(self):
+        template = self.manifest["demo"]["flagship"]["template"]
+
+        assert any("next_sun_event" in line for line in template)
+        assert any("next_sun_event_time" in line for line in template)
 
     def test_arrays_present(self):
         arrays = self.manifest["variables"]["arrays"]
